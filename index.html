@@ -415,6 +415,8 @@ const CATALOG = [
         base: 96, mult: { staff: 0.5 }, offline: true },
       { id: "tow2", name: "Tow car salvaged — lift 2", note: "Second Lift renovation — real time, ticks while offline",
         base: 96, mult: { staff: 0.5 }, offline: true, requires: "lift2" },
+      { id: "rep", name: "Reputation top-up tow", note: "Hidden rep decays 5/100 per 48 min (full→empty in 16h); one tow = +25 = 4h of decay. Tow before this expires to hold $24k/day",
+        base: 240, mult: {}, offline: true },
     ],
   },
   {
