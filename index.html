@@ -293,6 +293,30 @@
 /* ============================== Data ============================== */
 /* base = minutes with NO upgrades/boosts. mult = multiplier applied when a
    section checkbox (mod) is ticked. All bases are user-editable via ✎. */
+const DELIVERY_TIMER = {
+  id: "delivery", name: "Supplies delivery (after ordering)",
+  note: "~10 min, ticks in free roam only — click to pause if you leave",
+  base: 10, mult: {},
+};
+
+function mcBusiness(id, icon, name, suppliesBase, stockBase) {
+  const mult = { equip: 0.75, staff: 0.8 };
+  return {
+    id, icon, name,
+    mods: [
+      { id: "equip", label: "Equipment Upgrade" },
+      { id: "staff", label: "Staff Upgrade" },
+    ],
+    timers: [
+      Object.assign({}, DELIVERY_TIMER),
+      { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k)",
+        base: suppliesBase, mult },
+      { id: "stock", name: "Full stock produced", note: "Empty → full stock",
+        base: stockBase, mult },
+    ],
+  };
+}
+
 const CATALOG = [
   {
     id: "acid", icon: "🧪", name: "Acid Lab",
@@ -301,6 +325,7 @@ const CATALOG = [
       { id: "mutt",  label: "Daily production boost (Check In w/ Mutt)" },
     ],
     timers: [
+      Object.assign({}, DELIVERY_TIMER),
       { id: "supplies", name: "Supplies run dry", note: "Resupply when this hits zero",
         base: 112.5, mult: { equip: 4/3, mutt: 0.75 } },
       { id: "batch", name: "Full batch produced", note: "Empty → full stock ($60k supplies ≈ 1 bar)",
@@ -311,75 +336,16 @@ const CATALOG = [
     id: "bunker", icon: "🔫", name: "Bunker",
     mods: [],
     timers: [
+      Object.assign({}, DELIVERY_TIMER),
       { id: "supplies", name: "Supplies run dry", note: "Full bar ≈ 2h20m — upgrades change value, not speed",
         base: 140, mult: {} },
     ],
   },
-  {
-    id: "coke", icon: "❄️", name: "Cocaine Lockup",
-    mods: [
-      { id: "equip", label: "Equipment Upgrade" },
-      { id: "staff", label: "Staff Upgrade" },
-    ],
-    timers: [
-      { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k)",
-        base: 250, mult: { equip: 0.75, staff: 0.8 } },
-      { id: "stock", name: "Full stock produced", note: "Empty → full stock (needs ~2 resupplies)",
-        base: 500, mult: { equip: 0.75, staff: 0.8 } },
-    ],
-  },
-  {
-    id: "meth", icon: "⚗️", name: "Meth Lab",
-    mods: [
-      { id: "equip", label: "Equipment Upgrade" },
-      { id: "staff", label: "Staff Upgrade" },
-    ],
-    timers: [
-      { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k)",
-        base: 300, mult: { equip: 0.75, staff: 0.8 } },
-      { id: "stock", name: "Full stock produced", note: "Empty → full stock",
-        base: 600, mult: { equip: 0.75, staff: 0.8 } },
-    ],
-  },
-  {
-    id: "cash", icon: "💵", name: "Counterfeit Cash Factory",
-    mods: [
-      { id: "equip", label: "Equipment Upgrade" },
-      { id: "staff", label: "Staff Upgrade" },
-    ],
-    timers: [
-      { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k)",
-        base: 267, mult: { equip: 0.75, staff: 0.8 } },
-      { id: "stock", name: "Full stock produced", note: "Empty → full stock",
-        base: 533, mult: { equip: 0.75, staff: 0.8 } },
-    ],
-  },
-  {
-    id: "weed", icon: "🌿", name: "Weed Farm",
-    mods: [
-      { id: "equip", label: "Equipment Upgrade" },
-      { id: "staff", label: "Staff Upgrade" },
-    ],
-    timers: [
-      { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k)",
-        base: 333, mult: { equip: 0.75, staff: 0.8 } },
-      { id: "stock", name: "Full stock produced", note: "Empty → full stock",
-        base: 667, mult: { equip: 0.75, staff: 0.8 } },
-    ],
-  },
-  {
-    id: "forge", icon: "📄", name: "Document Forgery Office",
-    mods: [
-      { id: "equip", label: "Equipment Upgrade" },
-      { id: "staff", label: "Staff Upgrade" },
-    ],
-    timers: [
-      { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k)",
-        base: 250, mult: { equip: 0.75, staff: 0.8 } },
-      { id: "stock", name: "Full stock produced", note: "Empty → full stock",
-        base: 500, mult: { equip: 0.75, staff: 0.8 } },
-    ],
-  },
+  mcBusiness("coke",  "❄️", "Cocaine Lockup",           250, 500),
+  mcBusiness("meth",  "⚗️", "Meth Lab",                 300, 600),
+  mcBusiness("cash",  "💵", "Counterfeit Cash Factory", 267, 533),
+  mcBusiness("weed",  "🌿", "Weed Farm",                333, 667),
+  mcBusiness("forge", "📄", "Document Forgery Office",  250, 500),
   {
     id: "club", icon: "🪩", name: "Nightclub",
     mods: [],
