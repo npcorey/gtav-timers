@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GTA Online Business Timers</title>
+<style>
+  :root {
+    --bg: #14161b;
+    --panel: #1d2026;
+    --panel-2: #242830;
+    --border: #32363f;
+    --text: #e8eaed;
+    --muted: #9aa0aa;
+    --accent: #a4d43c;        /* GTA-ish chartreuse */
+    --accent-dim: #6d8f27;
+    --run: #4db8ff;
+    --done: #ffb340;
+    --danger: #ff6b6b;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    background: linear-gradient(135deg, #23163a 0%, #1a2a12 100%);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  header h1 {
+    font-size: 1.15rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  header h1 span { color: var(--accent); }
+  header .spacer { flex: 1; }
+  .hbtn {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 7px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .hbtn:hover { border-color: var(--accent-dim); }
+  .hbtn.on { border-color: var(--accent); color: var(--accent); }
+
+  .layout { display: flex; flex: 1; min-height: 0; }
+
+  /* ---------- Sidebar ---------- */
+  aside {
+    width: 250px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 14px;
+    overflow-y: auto;
+  }
+  aside h2 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .biz-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.9rem;
+  }
+  .biz-toggle:hover { background: var(--panel-2); }
+  .biz-toggle input { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+  .custom-add { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 14px; }
+  .custom-add input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 9px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+  }
+  .custom-add button {
+    width: 100%;
+    background: var(--accent-dim);
+    border: none;
+    color: #fff;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .custom-add button:hover { background: var(--accent); color: #14161b; }
+  aside .hint { font-size: 0.72rem; color: var(--muted); margin-top: 14px; line-height: 1.5; }
+
+  /* ---------- Main ---------- */
+  main { flex: 1; overflow-y: auto; padding: 18px; }
+  .empty-note { color: var(--muted); padding: 40px; text-align: center; line-height: 1.7; }
+
+  .section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--panel-2);
+    flex-wrap: wrap;
+  }
+  .section-head .icon { font-size: 1.2rem; }
+  .section-head h3 { font-size: 1rem; }
+  .section-head .spacer { flex: 1; }
+  .remove-sec {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px 8px;
+  }
+  .remove-sec:hover { color: var(--danger); }
+
+  .mods { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 10px 14px 2px; }
+  .mod {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.83rem;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+  }
+  .mod input { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+  .mod input:checked + span { color: var(--text); }
+
+  .timers { padding: 10px 14px 14px; display: grid; gap: 10px; }
+
+  .timer {
+    position: relative;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    cursor: pointer;
+    overflow: hidden;
+    user-select: none;
+    transition: border-color 0.15s;
+  }
+  .timer:hover { border-color: var(--accent-dim); }
+  .timer .fill {
+    position: absolute;
+    inset: 0;
+    width: 0%;
+    background: rgba(77, 184, 255, 0.12);
+    pointer-events: none;
+    transition: width 0.25s linear;
+  }
+  .timer.done { border-color: var(--done); animation: pulse 1.2s ease-in-out infinite; }
+  .timer.done .fill { background: rgba(255, 179, 64, 0.15); width: 100% !important; }
+  .timer.running { border-color: var(--run); }
+  .timer.paused { border-color: var(--muted); }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 179, 64, 0.35); }
+    50% { box-shadow: 0 0 14px 2px rgba(255, 179, 64, 0.35); }
+  }
+
+  .timer-row { position: relative; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .t-name { font-size: 0.9rem; font-weight: 600; }
+  .t-note { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+  .t-spacer { flex: 1; }
+  .t-clock {
+    font-variant-numeric: tabular-nums;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .timer.idle .t-clock { color: var(--muted); }
+  .timer.running .t-clock { color: var(--run); }
+  .timer.paused .t-clock { color: var(--muted); }
+  .timer.done .t-clock { color: var(--done); }
+  .t-status {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    width: 68px;
+    text-align: right;
+  }
+  .timer.done .t-status { color: var(--done); font-weight: 700; }
+  .timer.running .t-status { color: var(--run); }
+
+  .t-btn {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .t-btn:hover { color: var(--text); border-color: var(--accent-dim); }
+
+  .t-edit {
+    width: 74px;
+    background: var(--panel-2);
+    border: 1px solid var(--accent-dim);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 5px 7px;
+    font-size: 0.85rem;
+  }
+
+  footer {
+    padding: 10px 18px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    line-height: 1.5;
+  }
+  footer a { color: var(--accent-dim); }
+
+  /* Mobile */
+  #sidebarToggle { display: none; }
+  @media (max-width: 720px) {
+    #sidebarToggle { display: inline-block; }
+    aside { position: fixed; top: 0; left: 0; bottom: 0; z-index: 20; transform: translateX(-100%); transition: transform 0.2s; box-shadow: 4px 0 20px rgba(0,0,0,0.5); }
+    aside.open { transform: translateX(0); }
+    .t-clock { font-size: 1.15rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <button class="hbtn" id="sidebarToggle">☰ Businesses</button>
+  <h1>GTA Online <span>Business Timers</span></h1>
+  <div class="spacer"></div>
+  <button class="hbtn" id="notifyBtn" title="Get a browser notification when a timer finishes">🔔 Notifications: Off</button>
+  <button class="hbtn" id="resetAllBtn" title="Reset every timer">Reset All</button>
+</header>
+
+<div class="layout">
+  <aside id="sidebar">
+    <h2>Your Businesses</h2>
+    <div id="bizList"></div>
+    <div class="custom-add">
+      <h2>Custom Timer</h2>
+      <input id="customName" type="text" placeholder="Name (e.g. Nightclub goods)" maxlength="40">
+      <input id="customMin" type="number" placeholder="Minutes" min="0.1" step="any">
+      <button id="customAddBtn">+ Add Custom Timer</button>
+    </div>
+    <div class="hint">
+      Tick a business to show its timers. Everything (running timers included) is saved in your browser automatically.
+    </div>
+  </aside>
+
+  <main id="main"></main>
+</div>
+
+<footer>
+  <b>Left-click a timer</b> to start / pause / resume it. Checkboxes adjust durations for upgrades &amp; boosts (a running timer rescales proportionally).
+  Use <b>✎</b> to edit any base duration — defaults are community estimates and Rockstar tweaks values over time.
+  Not affiliated with Rockstar Games.
+</footer>
+
+<script>
+"use strict";
+
+/* ============================== Data ============================== */
+/* base = minutes with NO upgrades/boosts. mult = multiplier applied when a
+   section checkbox (mod) is ticked. All bases are user-editable via ✎. */
+const CATALOG = [
+  {
+    id: "acid", icon: "🧪", name: "Acid Lab",
+    mods: [
+      { id: "equip", label: "Equipment Upgrade ($250k)" },
+      { id: "mutt",  label: "Daily production boost (Check In w/ Mutt)" },
+    ],
+    timers: [
+      { id: "supplies", name: "Supplies run dry", note: "Resupply when this hits zero",
+        base: 112.5, mult: { equip: 4/3, mutt: 0.75 } },
+      { id: "batch", name: "Full batch produced", note: "Empty → full stock ($60k supplies ≈ 1 bar)",
+        base: 360, mult: { equip: 2/3, mutt: 0.75 } },
+    ],
+  },
+  {
+    id: "bunker", icon: "🔫", name: "Bunker",
+    mods: [],
+    timers: [
+      { id: "supplies", name: "Supplies run dry", note: "Full bar ≈ 2h20m — upgrades change value, not speed",
+        base: 140, mult: {} },
+    ],
+  },
+  {
+    id: "coke", icon: "❄️", name: "Cocaine Lockup",
+    mods: [
+      { id: "equip", label: "Equipment Upgrade" },
+      { id: "staff", label: "Staff Upgrade" },
+    ],
+    timers: [
+      { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k)",
+        base: 250, mult: { equip: 0.75, staff: 0.8 } },
+      { id: "stock", name: "Full stock produced", note: "Empty → full stock (needs ~2 resupplies)",
+        base: 500, mult: { equip: 0.75, staff: 0.8 } },
+    ],
+  },
+  {
+    id: "meth", icon: "⚗️", name: "Meth Lab",
+    mods: [
+      { id: "equip", label: "Equipment Upgrade" },
+      { id: "staff", label: "Staff Upgrade" },
+    ],
+    timers: [
+      { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k)",
+        base: 300, mult: { equip: 0.75, staff: 0.8 } },
+      { id: "stock", name: "Full stock produced", note: "Empty → full stock",
+        base: 600, mult: { equip: 0.75, staff: 0.8 } },
+    ],
+  },
+  {
+    id: "cash", icon: "💵", name: "Counterfeit Cash Factory",
+    mods: [
+      { id: "equip", label: "Equipment Upgrade" },
+      { id: "staff", label: "Staff Upgrade" },
+    ],
+    timers: [
+      { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k)",
+        base: 267, mult: { equip: 0.75, staff: 0.8 } },
+      { id: "stock", name: "Full stock produced", note: "Empty → full stock",
+        base: 533, mult: { equip: 0.75, staff: 0.8 } },
+    ],
+  },
+  {
+    id: "weed", icon: "🌿", name: "Weed Farm",
+    mods: [
+      { id: "equip", label: "Equipment Upgrade" },
+      { id: "staff", label: "Staff Upgrade" },
+    ],
+    timers: [
+      { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k)",
+        base: 333, mult: { equip: 0.75, staff: 0.8 } },
+      { id: "stock", name: "Full stock produced", note: "Empty → full stock",
+        base: 667, mult: { equip: 0.75, staff: 0.8 } },
+    ],
+  },
+  {
+    id: "forge", icon: "📄", name: "Document Forgery Office",
+    mods: [
+      { id: "equip", label: "Equipment Upgrade" },
+      { id: "staff", label: "Staff Upgrade" },
+    ],
+    timers: [
+      { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k)",
+        base: 250, mult: { equip: 0.75, staff: 0.8 } },
+      { id: "stock", name: "Full stock produced", note: "Empty → full stock",
+        base: 500, mult: { equip: 0.75, staff: 0.8 } },
+    ],
+  },
+  {
+    id: "club", icon: "🪩", name: "Nightclub",
+    mods: [],
+    timers: [
+      { id: "safe", name: "Safe income tick", note: "Pays every 48 min (in-game day) — safe caps at $250k",
+        base: 48, mult: {} },
+    ],
+  },
+  {
+    id: "agency", icon: "🕶️", name: "Agency",
+    mods: [],
+    timers: [
+      { id: "safe", name: "Safe income tick", note: "Pays every 48 min — up to $20k/tick at 201 contracts",
+        base: 48, mult: {} },
+    ],
+  },
+  {
+    id: "cayo", icon: "🏝️", name: "Cayo Perico Heist",
+    mods: [],
+    timers: [
+      { id: "cooldown", name: "Cooldown (solo)", note: "2h24m before Pavel offers the next run",
+        base: 144, mult: {} },
+    ],
+  },
+];
+
+const CUSTOM_SECTION_ID = "custom";
+const LS_KEY = "gta-timer-tool-v1";
+
+/* ============================== State ============================== */
+let state = {
+  active: ["acid"],           // section ids shown, in order
+  mods: {},                    // { sectionId: { modId: true } }
+  baseOverrides: {},           // { "sec.timer": minutes }
+  timers: {},                  // { "sec.timer": {status, endAt, remainingMs, durationMs} }
+  custom: [],                  // [ {id, name, minutes} ]
+  notify: false,
+};
+
+function save() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) state = Object.assign(state, JSON.parse(raw));
+  } catch (e) { /* corrupted storage — start fresh */ }
+}
+
+/* ============================== Helpers ============================== */
+function getSection(id) {
+  if (id === CUSTOM_SECTION_ID) {
+    return {
+      id: CUSTOM_SECTION_ID, icon: "⏱️", name: "Custom Timers", mods: [],
+      timers: state.custom.map(c => ({ id: c.id, name: c.name, base: c.minutes, mult: {}, custom: true })),
+    };
+  }
+  return CATALOG.find(s => s.id === id);
+}
+
+function timerKey(secId, tId) { return secId + "." + tId; }
+
+function effectiveMinutes(sec, timer) {
+  const key = timerKey(sec.id, timer.id);
+  let mins = state.baseOverrides[key] != null ? state.baseOverrides[key] : timer.base;
+  const secMods = state.mods[sec.id] || {};
+  for (const modId in timer.mult) {
+    if (secMods[modId]) mins *= timer.mult[modId];
+  }
+  return mins;
+}
+
+function fmt(ms) {
+  ms = Math.max(0, ms);
+  const s = Math.round(ms / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  const mm = String(m).padStart(2, "0"), ss = String(sec).padStart(2, "0");
+  return h > 0 ? h + ":" + mm + ":" + ss : mm + ":" + ss;
+}
+
+/* ============================== Timer logic ============================== */
+function getT(key) {
+  if (!state.timers[key]) state.timers[key] = { status: "idle", endAt: 0, remainingMs: 0, durationMs: 0 };
+  return state.timers[key];
+}
+
+function startTimer(sec, timer) {
+  const key = timerKey(sec.id, timer.id);
+  const t = getT(key);
+  const durMs = effectiveMinutes(sec, timer) * 60000;
+  t.status = "running";
+  t.durationMs = durMs;
+  t.endAt = Date.now() + durMs;
+  save();
+}
+
+function toggleTimer(sec, timer) {
+  const key = timerKey(sec.id, timer.id);
+  const t = getT(key);
+  if (t.status === "idle" || t.status === "done") {
+    startTimer(sec, timer);
+  } else if (t.status === "running") {
+    t.remainingMs = Math.max(0, t.endAt - Date.now());
+    t.status = "paused";
+    save();
+  } else if (t.status === "paused") {
+    t.endAt = Date.now() + t.remainingMs;
+    t.status = "running";
+    save();
+  }
+  render();
+}
+
+function resetTimer(key) {
+  const t = getT(key);
+  t.status = "idle";
+  t.endAt = 0;
+  t.remainingMs = 0;
+  save();
+  render();
+}
+
+/* Rescale a running/paused timer when its effective duration changes
+   (checkbox toggled): remaining time scales by newDuration/oldDuration. */
+function rescaleSection(sec) {
+  for (const timer of sec.timers) {
+    const key = timerKey(sec.id, timer.id);
+    const t = state.timers[key];
+    if (!t || (t.status !== "running" && t.status !== "paused")) continue;
+    const newDur = effectiveMinutes(sec, timer) * 60000;
+    if (!t.durationMs || newDur === t.durationMs) continue;
+    const ratio = newDur / t.durationMs;
+    if (t.status === "running") {
+      const remaining = Math.max(0, t.endAt - Date.now()) * ratio;
+      t.endAt = Date.now() + remaining;
+    } else {
+      t.remainingMs *= ratio;
+    }
+    t.durationMs = newDur;
+  }
+}
+
+/* ============================== Alerts ============================== */
+function beep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.22].forEach((delay, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = i === 0 ? 880 : 1175;
+      g.gain.setValueAtTime(0.001, ctx.currentTime + delay);
+      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + delay + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.2);
+      o.start(ctx.currentTime + delay);
+      o.stop(ctx.currentTime + delay + 0.22);
+    });
+  } catch (e) { /* audio unavailable */ }
+}
+
+function notifyDone(label) {
+  beep();
+  if (state.notify && "Notification" in window && Notification.permission === "granted") {
+    new Notification("GTA Timer done", { body: label });
+  }
+}
+
+/* ============================== Tick ============================== */
+function tick() {
+  let changed = false;
+  let soonest = null;
+  for (const secId of allActiveSections()) {
+    const sec = getSection(secId);
+    if (!sec) continue;
+    for (const timer of sec.timers) {
+      const key = timerKey(sec.id, timer.id);
+      const t = state.timers[key];
+      if (!t) continue;
+      if (t.status === "running") {
+        const rem = t.endAt - Date.now();
+        if (rem <= 0) {
+          t.status = "done";
+          changed = true;
+          notifyDone(sec.name + " — " + timer.name);
+        } else if (soonest === null || rem < soonest) {
+          soonest = rem;
+        }
+      }
+    }
+  }
+  if (changed) { save(); render(); }
+  else updateClocks();
+  document.title = soonest !== null ? fmt(soonest) + " · GTA Timers" : "GTA Online Business Timers";
+}
+
+function updateClocks() {
+  document.querySelectorAll(".timer[data-key]").forEach(el => {
+    const t = state.timers[el.dataset.key];
+    if (!t || t.status !== "running") return;
+    const rem = Math.max(0, t.endAt - Date.now());
+    el.querySelector(".t-clock").textContent = fmt(rem);
+    const pct = t.durationMs ? (100 * (1 - rem / t.durationMs)) : 0;
+    el.querySelector(".fill").style.width = pct.toFixed(2) + "%";
+  });
+}
+
+function allActiveSections() {
+  const list = state.active.slice();
+  if (state.custom.length && !list.includes(CUSTOM_SECTION_ID)) list.push(CUSTOM_SECTION_ID);
+  return list;
+}
+
+/* ============================== Render ============================== */
+const mainEl = document.getElementById("main");
+const bizListEl = document.getElementById("bizList");
+
+function render() {
+  renderSidebar();
+  renderMain();
+}
+
+function renderSidebar() {
+  bizListEl.innerHTML = "";
+  for (const sec of CATALOG) {
+    const label = document.createElement("label");
+    label.className = "biz-toggle";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = state.active.includes(sec.id);
+    cb.addEventListener("change", () => toggleSection(sec.id, cb.checked));
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(sec.icon + " " + sec.name));
+    bizListEl.appendChild(label);
+  }
+}
+
+function toggleSection(id, on) {
+  if (on) {
+    if (!state.active.includes(id)) state.active.push(id);
+  } else {
+    state.active = state.active.filter(x => x !== id);
+    // stop that section's timers so nothing fires invisibly
+    const sec = getSection(id);
+    if (sec) for (const timer of sec.timers) {
+      const t = state.timers[timerKey(id, timer.id)];
+      if (t) { t.status = "idle"; t.endAt = 0; t.remainingMs = 0; }
+    }
+  }
+  save();
+  render();
+}
+
+function renderMain() {
+  mainEl.innerHTML = "";
+  const sections = allActiveSections();
+  if (!sections.length) {
+    mainEl.innerHTML = '<div class="empty-note">No businesses selected.<br>Pick the ones you own from the <b>Your Businesses</b> sidebar,<br>or add a custom timer.</div>';
+    return;
+  }
+  for (const secId of sections) {
+    const sec = getSection(secId);
+    if (!sec || (secId === CUSTOM_SECTION_ID && !sec.timers.length)) continue;
+    mainEl.appendChild(renderSection(sec));
+  }
+}
+
+function renderSection(sec) {
+  const box = document.createElement("div");
+  box.className = "section";
+
+  const head = document.createElement("div");
+  head.className = "section-head";
+  head.innerHTML = '<span class="icon">' + sec.icon + '</span><h3>' + esc(sec.name) + '</h3><div class="spacer"></div>';
+  if (sec.id !== CUSTOM_SECTION_ID) {
+    const rm = document.createElement("button");
+    rm.className = "remove-sec";
+    rm.title = "Remove section";
+    rm.textContent = "✕";
+    rm.addEventListener("click", () => toggleSection(sec.id, false));
+    head.appendChild(rm);
+  }
+  box.appendChild(head);
+
+  if (sec.mods.length) {
+    const mods = document.createElement("div");
+    mods.className = "mods";
+    for (const mod of sec.mods) {
+      const label = document.createElement("label");
+      label.className = "mod";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !!(state.mods[sec.id] && state.mods[sec.id][mod.id]);
+      cb.addEventListener("change", () => {
+        if (!state.mods[sec.id]) state.mods[sec.id] = {};
+        state.mods[sec.id][mod.id] = cb.checked;
+        rescaleSection(sec);
+        save();
+        render();
+      });
+      const span = document.createElement("span");
+      span.textContent = mod.label;
+      label.appendChild(cb);
+      label.appendChild(span);
+      mods.appendChild(label);
+    }
+    box.appendChild(mods);
+  }
+
+  const wrap = document.createElement("div");
+  wrap.className = "timers";
+  for (const timer of sec.timers) wrap.appendChild(renderTimer(sec, timer));
+  box.appendChild(wrap);
+  return box;
+}
+
+function renderTimer(sec, timer) {
+  const key = timerKey(sec.id, timer.id);
+  const t = getT(key);
+  const durMs = effectiveMinutes(sec, timer) * 60000;
+
+  const el = document.createElement("div");
+  el.className = "timer " + t.status;
+  el.dataset.key = key;
+
+  const fill = document.createElement("div");
+  fill.className = "fill";
+  if (t.status === "running") {
+    const rem = Math.max(0, t.endAt - Date.now());
+    fill.style.width = (t.durationMs ? 100 * (1 - rem / t.durationMs) : 0) + "%";
+  } else if (t.status === "paused" && t.durationMs) {
+    fill.style.width = (100 * (1 - t.remainingMs / t.durationMs)) + "%";
+  }
+  el.appendChild(fill);
+
+  const row = document.createElement("div");
+  row.className = "timer-row";
+
+  const info = document.createElement("div");
+  info.innerHTML = '<div class="t-name">' + esc(timer.name) + '</div>' +
+    (timer.note ? '<div class="t-note">' + esc(timer.note) + '</div>' : "");
+  row.appendChild(info);
+
+  const spacer = document.createElement("div");
+  spacer.className = "t-spacer";
+  row.appendChild(spacer);
+
+  const clock = document.createElement("div");
+  clock.className = "t-clock";
+  clock.textContent =
+    t.status === "running" ? fmt(t.endAt - Date.now()) :
+    t.status === "paused"  ? fmt(t.remainingMs) :
+    t.status === "done"    ? "DONE" :
+    fmt(durMs);
+  row.appendChild(clock);
+
+  const status = document.createElement("div");
+  status.className = "t-status";
+  status.textContent =
+    t.status === "running" ? "running" :
+    t.status === "paused"  ? "paused" :
+    t.status === "done"    ? "ready!" : "click to start";
+  row.appendChild(status);
+
+  // edit base duration
+  const edit = document.createElement("button");
+  edit.className = "t-btn";
+  edit.title = "Edit base duration (minutes, before upgrades/boosts)";
+  edit.textContent = "✎";
+  edit.addEventListener("click", e => {
+    e.stopPropagation();
+    beginEdit(el, sec, timer, edit);
+  });
+  row.appendChild(edit);
+
+  const reset = document.createElement("button");
+  reset.className = "t-btn";
+  reset.textContent = "Reset";
+  reset.addEventListener("click", e => { e.stopPropagation(); resetTimer(key); });
+  row.appendChild(reset);
+
+  if (timer.custom) {
+    const del = document.createElement("button");
+    del.className = "t-btn";
+    del.title = "Delete custom timer";
+    del.textContent = "🗑";
+    del.addEventListener("click", e => {
+      e.stopPropagation();
+      state.custom = state.custom.filter(c => c.id !== timer.id);
+      delete state.timers[key];
+      save();
+      render();
+    });
+    row.appendChild(del);
+  }
+
+  el.appendChild(row);
+  el.addEventListener("click", () => toggleTimer(sec, timer));
+  return el;
+}
+
+function beginEdit(timerEl, sec, timer, editBtn) {
+  if (timerEl.querySelector(".t-edit")) return;
+  const key = timerKey(sec.id, timer.id);
+  const cur = state.baseOverrides[key] != null ? state.baseOverrides[key] : timer.base;
+  const input = document.createElement("input");
+  input.className = "t-edit";
+  input.type = "number";
+  input.min = "0.1";
+  input.step = "any";
+  input.value = Math.round(cur * 100) / 100;
+  input.addEventListener("click", e => e.stopPropagation());
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") commit();
+    if (e.key === "Escape") render();
+  });
+  input.addEventListener("blur", commit);
+  function commit() {
+    const v = parseFloat(input.value);
+    if (isFinite(v) && v > 0) {
+      if (timer.custom) {
+        const c = state.custom.find(c => c.id === timer.id);
+        if (c) c.minutes = v;
+      } else if (v === timer.base) {
+        delete state.baseOverrides[key];
+      } else {
+        state.baseOverrides[key] = v;
+      }
+      rescaleSection(sec);
+      save();
+    }
+    render();
+  }
+  editBtn.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* ============================== Header controls ============================== */
+const notifyBtn = document.getElementById("notifyBtn");
+function paintNotifyBtn() {
+  const on = state.notify && "Notification" in window && Notification.permission === "granted";
+  notifyBtn.textContent = on ? "🔔 Notifications: On" : "🔔 Notifications: Off";
+  notifyBtn.classList.toggle("on", on);
+}
+notifyBtn.addEventListener("click", async () => {
+  if (!("Notification" in window)) { alert("This browser doesn't support notifications."); return; }
+  if (state.notify && Notification.permission === "granted") {
+    state.notify = false;
+  } else {
+    const perm = await Notification.requestPermission();
+    state.notify = perm === "granted";
+  }
+  save();
+  paintNotifyBtn();
+});
+
+document.getElementById("resetAllBtn").addEventListener("click", () => {
+  for (const key in state.timers) {
+    state.timers[key] = { status: "idle", endAt: 0, remainingMs: 0, durationMs: 0 };
+  }
+  save();
+  render();
+});
+
+document.getElementById("customAddBtn").addEventListener("click", () => {
+  const nameEl = document.getElementById("customName");
+  const minEl = document.getElementById("customMin");
+  const name = nameEl.value.trim();
+  const mins = parseFloat(minEl.value);
+  if (!name || !isFinite(mins) || mins <= 0) return;
+  state.custom.push({ id: "c" + Date.now(), name: name, minutes: mins });
+  nameEl.value = "";
+  minEl.value = "";
+  save();
+  render();
+});
+
+const sidebar = document.getElementById("sidebar");
+document.getElementById("sidebarToggle").addEventListener("click", e => {
+  e.stopPropagation();
+  sidebar.classList.toggle("open");
+});
+document.addEventListener("click", e => {
+  if (sidebar.classList.contains("open") && !sidebar.contains(e.target)) sidebar.classList.remove("open");
+});
+
+/* ============================== Boot ============================== */
+load();
+// timers that expired while the page was closed
+for (const key in state.timers) {
+  const t = state.timers[key];
+  if (t.status === "running" && t.endAt <= Date.now()) t.status = "done";
+}
+paintNotifyBtn();
+render();
+setInterval(tick, 250);
+</script>
+</body>
+</html>
