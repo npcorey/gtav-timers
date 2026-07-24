@@ -407,12 +407,14 @@ const CATALOG = [
     id: "salvage", icon: "🚚", name: "Salvage Yard",
     mods: [
       { id: "staff", label: "Staff Upgrade" },
+      { id: "lift2", label: "Second Lift renovation",
+        title: "Lets two tow truck vehicles salvage at the same time — adds a second timer" },
     ],
     timers: [
-      { id: "tow", name: "Car salvaged — slot 1", note: "96 min (48 upgraded) — real time, keeps ticking while you're offline",
+      { id: "tow", name: "Tow car salvaged — lift 1", note: "96 min (48 with Staff Upgrade) — real time, keeps ticking while you're offline",
         base: 96, mult: { staff: 0.5 }, offline: true },
-      { id: "tow2", name: "Car salvaged — slot 2", note: "Two vehicles can be salvaged at once — real time, ticks while offline",
-        base: 96, mult: { staff: 0.5 }, offline: true },
+      { id: "tow2", name: "Tow car salvaged — lift 2", note: "Second Lift renovation — real time, ticks while offline",
+        base: 96, mult: { staff: 0.5 }, offline: true, requires: "lift2" },
     ],
   },
   {
@@ -706,6 +708,14 @@ function renderSection(sec) {
       cb.addEventListener("change", () => {
         if (!state.mods[sec.id]) state.mods[sec.id] = {};
         state.mods[sec.id][mod.id] = cb.checked;
+        if (!cb.checked) {
+          // stop timers this checkbox reveals so they can't finish invisibly
+          for (const t of sec.timers) {
+            if (t.requires !== mod.id) continue;
+            const st = state.timers[timerKey(sec.id, t.id)];
+            if (st) { st.status = "idle"; st.endAt = 0; st.remainingMs = 0; }
+          }
+        }
         rescaleSection(sec);
         save();
         render();
@@ -723,7 +733,11 @@ function renderSection(sec) {
 
   const wrap = document.createElement("div");
   wrap.className = "timers";
-  for (const timer of sec.timers) wrap.appendChild(renderTimer(sec, timer));
+  const secMods = state.mods[sec.id] || {};
+  for (const timer of sec.timers) {
+    if (timer.requires && !secMods[timer.requires]) continue;
+    wrap.appendChild(renderTimer(sec, timer));
+  }
   box.appendChild(wrap);
   return box;
 }
