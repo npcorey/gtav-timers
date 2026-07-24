@@ -271,6 +271,10 @@
       <h2>Custom Timer</h2>
       <input id="customName" type="text" placeholder="Name (e.g. Nightclub goods)" maxlength="40">
       <input id="customMin" type="number" placeholder="Minutes" min="0.1" step="any">
+      <label class="mod" style="margin-bottom:8px;">
+        <input id="customOffline" type="checkbox">
+        <span>🌙 Ticks while page is closed</span>
+      </label>
       <button id="customAddBtn">+ Add Custom Timer</button>
     </div>
     <div class="hint">
@@ -283,6 +287,7 @@
 
 <footer>
   <b>Left-click a timer</b> to start / pause / resume it. Checkboxes adjust durations for upgrades &amp; boosts (a running timer rescales proportionally).
+  In-game timers pause while this page is closed; <b>🌙 real-time timers</b> (Salvage Yard, Cayo cooldown) keep ticking even while you're offline.
   Use <b>✎</b> to edit any base duration — defaults are community estimates and Rockstar tweaks values over time.
   Not affiliated with Rockstar Games.
 </footer>
@@ -348,10 +353,14 @@ const CATALOG = [
   mcBusiness("forge", "📄", "Document Forgery Office",  250, 500),
   {
     id: "club", icon: "🪩", name: "Nightclub",
-    mods: [],
+    mods: [
+      { id: "equip", label: "Equipment Upgrade ($1.425M)" },
+    ],
     timers: [
       { id: "safe", name: "Safe income tick", note: "Pays every 48 min (in-game day) — safe caps at $250k",
         base: 48, mult: {} },
+      { id: "coke", name: "South American Imports full (cocaine)", note: "First goods type to hit max (10 crates) — needs a technician assigned",
+        base: 2400, mult: { equip: 0.5 } },
     ],
   },
   {
@@ -363,11 +372,21 @@ const CATALOG = [
     ],
   },
   {
+    id: "salvage", icon: "🚚", name: "Salvage Yard",
+    mods: [
+      { id: "staff", label: "Staff Upgrade" },
+    ],
+    timers: [
+      { id: "tow", name: "Tow truck car salvaged", note: "96 min (48 upgraded) — real time, keeps ticking while you're offline",
+        base: 96, mult: { staff: 0.5 }, offline: true },
+    ],
+  },
+  {
     id: "cayo", icon: "🏝️", name: "Cayo Perico Heist",
     mods: [],
     timers: [
-      { id: "cooldown", name: "Cooldown (solo)", note: "2h24m before Pavel offers the next run",
-        base: 144, mult: {} },
+      { id: "cooldown", name: "Cooldown (solo)", note: "2h24m before Pavel offers the next run — real time, ticks while offline",
+        base: 144, mult: {}, offline: true },
     ],
   },
 ];
@@ -385,7 +404,7 @@ let state = {
   notify: false,
 };
 
-function save() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function save() { state.lastSeen = Date.now(); localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 function load() {
   try {
     const raw = localStorage.getItem(LS_KEY);
@@ -398,13 +417,21 @@ function getSection(id) {
   if (id === CUSTOM_SECTION_ID) {
     return {
       id: CUSTOM_SECTION_ID, icon: "⏱️", name: "Custom Timers", mods: [],
-      timers: state.custom.map(c => ({ id: c.id, name: c.name, base: c.minutes, mult: {}, custom: true })),
+      timers: state.custom.map(c => ({ id: c.id, name: c.name, base: c.minutes, mult: {}, custom: true, offline: !!c.offline })),
     };
   }
   return CATALOG.find(s => s.id === id);
 }
 
 function timerKey(secId, tId) { return secId + "." + tId; }
+
+/* Look up a timer definition from its state key ("sectionId.timerId"). */
+function findTimerDef(key) {
+  const dot = key.indexOf(".");
+  const secId = key.slice(0, dot), tId = key.slice(dot + 1);
+  const sec = getSection(secId);
+  return sec ? sec.timers.find(t => t.id === tId) : null;
+}
 
 function effectiveMinutes(sec, timer) {
   const key = timerKey(sec.id, timer.id);
@@ -534,7 +561,11 @@ function tick() {
     }
   }
   if (changed) { save(); render(); }
-  else updateClocks();
+  else {
+    updateClocks();
+    // heartbeat so the away-gap on next load only covers page-closed time
+    if (Date.now() - (state.lastSeen || 0) > 5000) save();
+  }
   document.title = soonest !== null ? fmt(soonest) + " · GTA Timers" : "GTA Online Business Timers";
 }
 
@@ -681,8 +712,10 @@ function renderTimer(sec, timer) {
   row.className = "timer-row";
 
   const info = document.createElement("div");
-  info.innerHTML = '<div class="t-name">' + esc(timer.name) + '</div>' +
-    (timer.note ? '<div class="t-note">' + esc(timer.note) + '</div>' : "");
+  const badge = timer.offline ? "🌙 " : "";
+  const note = timer.note || (timer.offline ? "Real time — ticks while this page is closed" : "");
+  info.innerHTML = '<div class="t-name">' + badge + esc(timer.name) + '</div>' +
+    (note ? '<div class="t-note">' + esc(note) + '</div>' : "");
   row.appendChild(info);
 
   const spacer = document.createElement("div");
@@ -814,12 +847,14 @@ document.getElementById("resetAllBtn").addEventListener("click", () => {
 document.getElementById("customAddBtn").addEventListener("click", () => {
   const nameEl = document.getElementById("customName");
   const minEl = document.getElementById("customMin");
+  const offEl = document.getElementById("customOffline");
   const name = nameEl.value.trim();
   const mins = parseFloat(minEl.value);
   if (!name || !isFinite(mins) || mins <= 0) return;
-  state.custom.push({ id: "c" + Date.now(), name: name, minutes: mins });
+  state.custom.push({ id: "c" + Date.now(), name: name, minutes: mins, offline: offEl.checked });
   nameEl.value = "";
   minEl.value = "";
+  offEl.checked = false;
   save();
   render();
 });
@@ -835,11 +870,19 @@ document.addEventListener("click", e => {
 
 /* ============================== Boot ============================== */
 load();
-// timers that expired while the page was closed
+/* In-game timers (production, deliveries, safes) only advance while you're
+   playing, so they pause for the time this page was closed: shift their end
+   time forward by the away-gap. Real-time timers (offline: true — salvage
+   yard, Cayo cooldown) keep counting through wall-clock time. */
+const awayGap = state.lastSeen ? Math.max(0, Date.now() - state.lastSeen) : 0;
 for (const key in state.timers) {
   const t = state.timers[key];
-  if (t.status === "running" && t.endAt <= Date.now()) t.status = "done";
+  if (t.status !== "running") continue;
+  const def = findTimerDef(key);
+  if (awayGap > 5000 && def && !def.offline) t.endAt += awayGap;
+  if (t.endAt <= Date.now()) t.status = "done";
 }
+save();
 paintNotifyBtn();
 render();
 setInterval(tick, 250);
