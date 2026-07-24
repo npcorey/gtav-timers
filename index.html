@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GTA Online Business Timers</title>
+<title>GTAV Online Business Timers</title>
 <style>
   :root {
     --bg: #14161b;
@@ -262,7 +262,7 @@
 
 <header>
   <button class="hbtn" id="sidebarToggle">☰ Businesses</button>
-  <h1>GTA Online <span>Business Timers</span></h1>
+  <h1>GTAV Online <span>Business Timers</span></h1>
   <div class="spacer"></div>
   <button class="hbtn" id="notifyBtn" title="Get a browser notification when a timer finishes">🔔 Notifications: Off</button>
   <button class="hbtn" id="resetAllBtn" title="Reset every timer">Reset All</button>
@@ -571,7 +571,7 @@ function beep() {
 function notifyDone(label) {
   beep();
   if (state.notify && "Notification" in window && Notification.permission === "granted") {
-    new Notification("GTA Timer done", { body: label });
+    new Notification("GTAV Timer done", { body: label });
   }
 }
 
@@ -604,7 +604,7 @@ function tick() {
     // heartbeat so the away-gap on next load only covers page-closed time
     if (Date.now() - (state.lastSeen || 0) > 5000) save();
   }
-  document.title = soonest !== null ? fmt(soonest) + " · GTA Timers" : "GTA Online Business Timers";
+  document.title = soonest !== null ? fmt(soonest) + " · GTAV Timers" : "GTAV Online Business Timers";
 }
 
 function updateClocks() {
