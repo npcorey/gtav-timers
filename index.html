@@ -312,8 +312,11 @@ const DELIVERY_TIMER = {
 const MANSION_MOD = { id: "mansion", label: "Mansion boost (×3 speed)",
   title: "AI Concierge production boost — free, one business per real day, 24h cooldown" };
 
-function mcBusiness(id, icon, name, suppliesBase, stockBase) {
-  const mult = { equip: 0.75, staff: 0.8, mansion: 1/3 };
+/* stockBase = empty→full minutes with no upgrades. equipT/staffT = per-unit
+   production-time multipliers. Supplies: ~5 bars fill max stock unupgraded,
+   ~2.5 upgraded (equipment stretches supplies ~2x), so one bar lasts
+   stockBase/5 base, ×2 supply stretch on the equipment upgrade. */
+function mcBusiness(id, icon, name, stockBase, equipT, staffT) {
   return {
     id, icon, name,
     mods: [
@@ -323,10 +326,10 @@ function mcBusiness(id, icon, name, suppliesBase, stockBase) {
     ],
     timers: [
       Object.assign({}, DELIVERY_TIMER),
-      { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k)",
-        base: suppliesBase, mult },
-      { id: "stock", name: "Full stock produced", note: "Empty → full stock",
-        base: stockBase, mult },
+      { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k) — estimate: ~5 bars per full stock unupgraded, ~2.5 upgraded",
+        base: stockBase / 5, mult: { equip: equipT * 2, staff: staffT, mansion: 1/3 } },
+      { id: "stock", name: "Full stock produced", note: "Empty → full stock (keep supplies topped up)",
+        base: stockBase, mult: { equip: equipT, staff: staffT, mansion: 1/3 } },
     ],
   };
 }
@@ -350,27 +353,33 @@ const CATALOG = [
   },
   {
     id: "bunker", icon: "🔫", name: "Bunker",
-    mods: [MANSION_MOD],
+    mods: [
+      { id: "equip", label: "Equipment Upgrade" },
+      { id: "staff", label: "Staff Upgrade" },
+      MANSION_MOD,
+    ],
     timers: [
       Object.assign({}, DELIVERY_TIMER),
-      { id: "supplies", name: "Supplies run dry", note: "Full bar ≈ 2h20m — upgrades change value, not speed",
-        base: 140, mult: { mansion: 1/3 } },
+      { id: "supplies", name: "Supplies run dry", note: "Full bar: 1h40m no upgrades → 2h20m with both (upgrades slow depletion AND raise stock value)",
+        base: 100, mult: { equip: 1.2, staff: 7/6, mansion: 1/3 } },
+      { id: "research", name: "Research bar complete", note: "Staff on research only: ~8.5h no upgrades → ~3.5h with both",
+        base: 510, mult: { equip: 0.64, staff: 0.64 } },
     ],
   },
-  mcBusiness("coke",  "❄️", "Cocaine Lockup",           250, 500),
-  mcBusiness("meth",  "⚗️", "Meth Lab",                 300, 600),
-  mcBusiness("cash",  "💵", "Counterfeit Cash Factory", 267, 533),
-  mcBusiness("weed",  "🌿", "Weed Farm",                333, 667),
-  mcBusiness("forge", "📄", "Document Forgery Office",  250, 500),
+  mcBusiness("coke",  "❄️", "Cocaine Lockup",           500, 0.8,  0.75),
+  mcBusiness("meth",  "⚗️", "Meth Lab",                 600, 0.8,  0.75),
+  mcBusiness("cash",  "💵", "Counterfeit Cash Factory", 480, 5/6,  0.8),
+  mcBusiness("weed",  "🌿", "Weed Farm",                480, 5/6,  0.8),
+  mcBusiness("forge", "📄", "Document Forgery Office",  300, 0.8,  0.75),
   {
     id: "club", icon: "🪩", name: "Nightclub",
     mods: [
       { id: "equip", label: "Equipment Upgrade ($1.425M)" },
     ],
     timers: [
-      { id: "safe", name: "Safe income tick", note: "Pays every 48 min (in-game day) — safe caps at $250k",
-        base: 48, mult: {} },
-      { id: "dj", name: "Rebook DJ (popularity)", note: "Popularity falls ~5% per 48 min; a $10k DJ rebook adds +10% — top up every ~2 in-game days to stay at 100%",
+      { id: "safe", name: "Safe full ($250k)", note: "At 100% popularity the safe earns $50k per 48 min and caps in ~4h — collect before it stops accruing",
+        base: 240, mult: {} },
+      { id: "dj", name: "Popularity top-up", note: "Popularity falls ~5% per 48 min; $10k promo ≈ +10% — top up every ~2 in-game days to stay at 100%",
         base: 96, mult: {} },
       { id: "coke", name: "South American Imports full (cocaine)", note: "First goods type to hit max (10 crates) — needs a technician assigned",
         base: 2400, mult: { equip: 0.5 } },
@@ -382,6 +391,16 @@ const CATALOG = [
     timers: [
       { id: "safe", name: "Safe income tick", note: "Pays every 48 min — up to $20k/tick at 201 contracts",
         base: 48, mult: {} },
+    ],
+  },
+  {
+    id: "bail", icon: "⛓️", name: "Bail Office",
+    mods: [],
+    timers: [
+      { id: "agents", name: "Bail agents return", note: "Dispatched agents come back after 48 min with $5–10k each — real time, ticks while offline",
+        base: 48, mult: {}, offline: true },
+      { id: "board", name: "Bounty board refresh", note: "3 regular bounties reset every hour on the server clock — real time",
+        base: 60, mult: {}, offline: true },
     ],
   },
   {
