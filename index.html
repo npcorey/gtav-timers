@@ -62,7 +62,7 @@
 
   /* ---------- Sidebar ---------- */
   aside {
-    width: 250px;
+    width: 232px;
     flex-shrink: 0;
     background: var(--panel);
     border-right: 1px solid var(--border);
@@ -120,51 +120,50 @@
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    margin-bottom: 16px;
-    overflow: hidden;
-  }
-  .section-head {
+    margin-bottom: 8px;
+    padding: 8px 12px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    background: var(--panel-2);
+    gap: 14px;
     flex-wrap: wrap;
   }
-  .section-head .icon { font-size: 1.2rem; }
-  .section-head h3 { font-size: 1rem; }
-  .section-head .spacer { flex: 1; }
+  .sec-left { width: 195px; flex-shrink: 0; }
+  .sec-title { display: flex; align-items: center; gap: 7px; }
+  .sec-title .icon { font-size: 1rem; }
+  .sec-title h3 { font-size: 0.9rem; flex: 1; }
   .remove-sec {
     background: none;
     border: none;
     color: var(--muted);
     cursor: pointer;
-    font-size: 1rem;
-    padding: 4px 8px;
+    font-size: 0.9rem;
+    padding: 2px 6px;
   }
   .remove-sec:hover { color: var(--danger); }
 
-  .mods { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 10px 14px 2px; }
+  .mods { display: flex; flex-wrap: wrap; gap: 2px 12px; margin-top: 3px; }
   .mod {
     display: flex;
     align-items: center;
-    gap: 7px;
-    font-size: 0.83rem;
+    gap: 5px;
+    font-size: 0.72rem;
     color: var(--muted);
     cursor: pointer;
     user-select: none;
   }
-  .mod input { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+  .mod input { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; flex-shrink: 0; }
   .mod input:checked + span { color: var(--text); }
 
-  .timers { padding: 10px 14px 14px; display: grid; gap: 10px; }
+  .timers { flex: 1; min-width: 240px; display: flex; flex-wrap: wrap; gap: 8px; }
 
   .timer {
     position: relative;
+    flex: 1;
+    min-width: 158px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 12px 14px;
+    padding: 6px 10px;
     cursor: pointer;
     overflow: hidden;
     user-select: none;
@@ -188,27 +187,32 @@
     50% { box-shadow: 0 0 14px 2px rgba(255, 179, 64, 0.35); }
   }
 
-  .timer-row { position: relative; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .t-name { font-size: 0.9rem; font-weight: 600; }
-  .t-note { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+  .t-top {
+    position: relative;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .t-bottom { position: relative; display: flex; align-items: center; gap: 7px; margin-top: 1px; }
   .t-spacer { flex: 1; }
   .t-clock {
     font-variant-numeric: tabular-nums;
-    font-size: 1.35rem;
+    font-size: 1.1rem;
     font-weight: 700;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
   }
   .timer.idle .t-clock { color: var(--muted); }
   .timer.running .t-clock { color: var(--run); }
   .timer.paused .t-clock { color: var(--muted); }
   .timer.done .t-clock { color: var(--done); }
   .t-status {
-    font-size: 0.68rem;
+    font-size: 0.62rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     color: var(--muted);
-    width: 68px;
-    text-align: right;
   }
   .timer.done .t-status { color: var(--done); font-weight: 700; }
   .timer.running .t-status { color: var(--run); }
@@ -218,20 +222,21 @@
     border: 1px solid var(--border);
     color: var(--muted);
     border-radius: 6px;
-    padding: 5px 10px;
-    font-size: 0.78rem;
+    padding: 2px 7px;
+    font-size: 0.72rem;
     cursor: pointer;
+    line-height: 1.4;
   }
   .t-btn:hover { color: var(--text); border-color: var(--accent-dim); }
 
   .t-edit {
-    width: 74px;
+    width: 64px;
     background: var(--panel-2);
     border: 1px solid var(--accent-dim);
     color: var(--text);
     border-radius: 6px;
-    padding: 5px 7px;
-    font-size: 0.85rem;
+    padding: 2px 6px;
+    font-size: 0.8rem;
   }
 
   footer {
@@ -249,7 +254,7 @@
     #sidebarToggle { display: inline-block; }
     aside { position: fixed; top: 0; left: 0; bottom: 0; z-index: 20; transform: translateX(-100%); transition: transform 0.2s; box-shadow: 4px 0 20px rgba(0,0,0,0.5); }
     aside.open { transform: translateX(0); }
-    .t-clock { font-size: 1.15rem; }
+    .sec-left { width: 100%; }
   }
 </style>
 </head>
@@ -286,7 +291,7 @@
 </div>
 
 <footer>
-  <b>Left-click a timer</b> to start / pause / resume it. Checkboxes adjust durations for upgrades &amp; boosts (a running timer rescales proportionally).
+  <b>Left-click a timer</b> to start / pause / resume it — hover one for details. Checkboxes adjust durations for upgrades &amp; boosts (a running timer rescales proportionally).
   In-game timers pause while this page is closed; <b>🌙 real-time timers</b> (Salvage Yard, Cayo cooldown) keep ticking even while you're offline.
   Use <b>✎</b> to edit any base duration — defaults are community estimates and Rockstar tweaks values over time.
   Not affiliated with Rockstar Games.
@@ -304,7 +309,8 @@ const DELIVERY_TIMER = {
   base: 10, mult: {},
 };
 
-const MANSION_MOD = { id: "mansion", label: "Mansion production boost (AI Concierge, ×3 speed)" };
+const MANSION_MOD = { id: "mansion", label: "Mansion boost (×3 speed)",
+  title: "AI Concierge production boost — free, one business per real day, 24h cooldown" };
 
 function mcBusiness(id, icon, name, suppliesBase, stockBase) {
   const mult = { equip: 0.75, staff: 0.8, mansion: 1/3 };
@@ -330,7 +336,8 @@ const CATALOG = [
     id: "acid", icon: "🧪", name: "Acid Lab",
     mods: [
       { id: "equip", label: "Equipment Upgrade ($250k)" },
-      { id: "mutt",  label: "Daily production boost (Check In w/ Mutt)" },
+      { id: "mutt",  label: "Mutt daily boost",
+        title: "Check In with Mutt once per real day — quitting the game resets the effect" },
       MANSION_MOD,
     ],
     timers: [
@@ -363,6 +370,8 @@ const CATALOG = [
     timers: [
       { id: "safe", name: "Safe income tick", note: "Pays every 48 min (in-game day) — safe caps at $250k",
         base: 48, mult: {} },
+      { id: "dj", name: "Rebook DJ (popularity)", note: "Popularity falls ~5% per 48 min; a $10k DJ rebook adds +10% — top up every ~2 in-game days to stay at 100%",
+        base: 96, mult: {} },
       { id: "coke", name: "South American Imports full (cocaine)", note: "First goods type to hit max (10 crates) — needs a technician assigned",
         base: 2400, mult: { equip: 0.5 } },
     ],
@@ -648,18 +657,21 @@ function renderSection(sec) {
   const box = document.createElement("div");
   box.className = "section";
 
-  const head = document.createElement("div");
-  head.className = "section-head";
-  head.innerHTML = '<span class="icon">' + sec.icon + '</span><h3>' + esc(sec.name) + '</h3><div class="spacer"></div>';
+  const left = document.createElement("div");
+  left.className = "sec-left";
+
+  const title = document.createElement("div");
+  title.className = "sec-title";
+  title.innerHTML = '<span class="icon">' + sec.icon + '</span><h3>' + esc(sec.name) + '</h3>';
   if (sec.id !== CUSTOM_SECTION_ID) {
     const rm = document.createElement("button");
     rm.className = "remove-sec";
     rm.title = "Remove section";
     rm.textContent = "✕";
     rm.addEventListener("click", () => toggleSection(sec.id, false));
-    head.appendChild(rm);
+    title.appendChild(rm);
   }
-  box.appendChild(head);
+  left.appendChild(title);
 
   if (sec.mods.length) {
     const mods = document.createElement("div");
@@ -679,12 +691,14 @@ function renderSection(sec) {
       });
       const span = document.createElement("span");
       span.textContent = mod.label;
+      if (mod.title) label.title = mod.title;
       label.appendChild(cb);
       label.appendChild(span);
       mods.appendChild(label);
     }
-    box.appendChild(mods);
+    left.appendChild(mods);
   }
+  box.appendChild(left);
 
   const wrap = document.createElement("div");
   wrap.className = "timers";
@@ -712,19 +726,16 @@ function renderTimer(sec, timer) {
   }
   el.appendChild(fill);
 
-  const row = document.createElement("div");
-  row.className = "timer-row";
-
-  const info = document.createElement("div");
-  const badge = timer.offline ? "🌙 " : "";
   const note = timer.note || (timer.offline ? "Real time — ticks while this page is closed" : "");
-  info.innerHTML = '<div class="t-name">' + badge + esc(timer.name) + '</div>' +
-    (note ? '<div class="t-note">' + esc(note) + '</div>' : "");
-  row.appendChild(info);
+  if (note) el.title = note;
 
-  const spacer = document.createElement("div");
-  spacer.className = "t-spacer";
-  row.appendChild(spacer);
+  const top = document.createElement("div");
+  top.className = "t-top";
+  top.textContent = (timer.offline ? "🌙 " : "") + timer.name;
+  el.appendChild(top);
+
+  const row = document.createElement("div");
+  row.className = "t-bottom";
 
   const clock = document.createElement("div");
   clock.className = "t-clock";
@@ -740,8 +751,12 @@ function renderTimer(sec, timer) {
   status.textContent =
     t.status === "running" ? "running" :
     t.status === "paused"  ? "paused" :
-    t.status === "done"    ? "ready!" : "click to start";
+    t.status === "done"    ? "ready!" : "start";
   row.appendChild(status);
+
+  const spacer = document.createElement("div");
+  spacer.className = "t-spacer";
+  row.appendChild(spacer);
 
   // edit base duration
   const edit = document.createElement("button");
@@ -756,7 +771,8 @@ function renderTimer(sec, timer) {
 
   const reset = document.createElement("button");
   reset.className = "t-btn";
-  reset.textContent = "Reset";
+  reset.title = "Reset";
+  reset.textContent = "↺";
   reset.addEventListener("click", e => { e.stopPropagation(); resetTimer(key); });
   row.appendChild(reset);
 
