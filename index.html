@@ -304,13 +304,16 @@ const DELIVERY_TIMER = {
   base: 10, mult: {},
 };
 
+const MANSION_MOD = { id: "mansion", label: "Mansion production boost (AI Concierge, ×3 speed)" };
+
 function mcBusiness(id, icon, name, suppliesBase, stockBase) {
-  const mult = { equip: 0.75, staff: 0.8 };
+  const mult = { equip: 0.75, staff: 0.8, mansion: 1/3 };
   return {
     id, icon, name,
     mods: [
       { id: "equip", label: "Equipment Upgrade" },
       { id: "staff", label: "Staff Upgrade" },
+      MANSION_MOD,
     ],
     timers: [
       Object.assign({}, DELIVERY_TIMER),
@@ -328,22 +331,23 @@ const CATALOG = [
     mods: [
       { id: "equip", label: "Equipment Upgrade ($250k)" },
       { id: "mutt",  label: "Daily production boost (Check In w/ Mutt)" },
+      MANSION_MOD,
     ],
     timers: [
       Object.assign({}, DELIVERY_TIMER),
       { id: "supplies", name: "Supplies run dry", note: "Resupply when this hits zero",
-        base: 112.5, mult: { equip: 4/3, mutt: 0.75 } },
+        base: 112.5, mult: { equip: 4/3, mutt: 0.75, mansion: 1/3 } },
       { id: "batch", name: "Full batch produced", note: "Empty → full stock ($60k supplies ≈ 1 bar)",
-        base: 360, mult: { equip: 2/3, mutt: 0.75 } },
+        base: 360, mult: { equip: 2/3, mutt: 0.75, mansion: 1/3 } },
     ],
   },
   {
     id: "bunker", icon: "🔫", name: "Bunker",
-    mods: [],
+    mods: [MANSION_MOD],
     timers: [
       Object.assign({}, DELIVERY_TIMER),
       { id: "supplies", name: "Supplies run dry", note: "Full bar ≈ 2h20m — upgrades change value, not speed",
-        base: 140, mult: {} },
+        base: 140, mult: { mansion: 1/3 } },
     ],
   },
   mcBusiness("coke",  "❄️", "Cocaine Lockup",           250, 500),
