@@ -409,7 +409,9 @@ const CATALOG = [
       { id: "staff", label: "Staff Upgrade" },
     ],
     timers: [
-      { id: "tow", name: "Tow truck car salvaged", note: "96 min (48 upgraded) — real time, keeps ticking while you're offline",
+      { id: "tow", name: "Car salvaged — slot 1", note: "96 min (48 upgraded) — real time, keeps ticking while you're offline",
+        base: 96, mult: { staff: 0.5 }, offline: true },
+      { id: "tow2", name: "Car salvaged — slot 2", note: "Two vehicles can be salvaged at once — real time, ticks while offline",
         base: 96, mult: { staff: 0.5 }, offline: true },
     ],
   },
