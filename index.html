@@ -376,13 +376,16 @@ const CATALOG = [
   {
     id: "club", icon: "🪩", name: "Nightclub",
     mods: [
-      { id: "equip", label: "Equipment Upgrade ($1.425M)" },
+      { id: "equip", label: "Equipment Upgrade ($1.425M)",
+        title: "Doubles warehouse goods production speed" },
+      { id: "staff", label: "Staff Upgrade",
+        title: "Slows popularity decay (community estimate: roughly half — edit the timer if you observe otherwise)" },
     ],
     timers: [
       { id: "safe", name: "Safe full ($250k)", note: "At 100% popularity the safe earns $50k per 48 min and caps in ~4h — collect before it stops accruing",
         base: 240, mult: {}, fillLabel: "full" },
-      { id: "dj", name: "Popularity top-up", note: "Popularity falls ~5% per 48 min; $10k promo ≈ +10% — top up every ~2 in-game days to stay at 100%",
-        base: 96, mult: {} },
+      { id: "dj", name: "Popularity top-up", note: "Popularity falls ~5% per 48 min (slower with Staff Upgrade); $10k promo ≈ +10% — top up before this runs out to stay at 100%",
+        base: 96, mult: { staff: 2 } },
       { id: "coke", name: "South American Imports full (cocaine)", note: "First goods type to hit max (10 crates) — needs a technician assigned",
         base: 2400, mult: { equip: 0.5 }, fillLabel: "full" },
     ],
