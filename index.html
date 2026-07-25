@@ -374,6 +374,29 @@ const CATALOG = [
   mcBusiness("weed",  "🌿", "Weed Farm",                480, 5/6,  0.8),
   mcBusiness("forge", "📄", "Document Forgery Office",  300, 0.8,  0.75),
   {
+    id: "cargo", icon: "📦", name: "Special Cargo (CEO)",
+    mods: [
+      { id: "w5", label: "Show all 5 warehouses",
+        title: "You can own up to five Special Cargo warehouses, each with its own staff member" },
+    ],
+    timers: [
+      { id: "w1", name: "Warehouse 1 — staff sourcing", note: "$7,500 per run, returns 1–4 crates after 48 min — re-dispatch from the warehouse computer",
+        base: 48, mult: {} },
+      { id: "w2", name: "Warehouse 2 — staff sourcing", base: 48, mult: {}, requires: "w5" },
+      { id: "w3", name: "Warehouse 3 — staff sourcing", base: 48, mult: {}, requires: "w5" },
+      { id: "w4", name: "Warehouse 4 — staff sourcing", base: 48, mult: {}, requires: "w5" },
+      { id: "w5", name: "Warehouse 5 — staff sourcing", base: 48, mult: {}, requires: "w5" },
+    ],
+  },
+  {
+    id: "hangar", icon: "✈️", name: "Hangar (Air Freight)",
+    mods: [],
+    timers: [
+      { id: "rooster", name: "Rooster McCraw cargo run", note: "$25k per dispatch, brings 1–2 random crates after ~48 min — re-dispatch when done. Random types break single-type stacking bonuses",
+        base: 48, mult: {} },
+    ],
+  },
+  {
     id: "club", icon: "🪩", name: "Nightclub",
     mods: [
       { id: "equip", label: "Equipment Upgrade ($1.425M)",
