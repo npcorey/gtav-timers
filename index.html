@@ -229,6 +229,7 @@
     line-height: 1.4;
   }
   .t-btn:hover { color: var(--text); border-color: var(--accent-dim); }
+  .t-btn.overridden { color: var(--accent); border-color: var(--accent-dim); }
 
   .t-edit {
     width: 64px;
@@ -834,7 +835,12 @@ function renderTimer(sec, timer) {
   // edit base duration
   const edit = document.createElement("button");
   edit.className = "t-btn";
-  edit.title = "Edit base duration (minutes, before upgrades/boosts)";
+  const overridden = !timer.custom && state.baseOverrides[key] != null;
+  if (overridden) edit.classList.add("overridden");
+  edit.title = timer.custom
+    ? "Edit duration (minutes)"
+    : "Edit base duration in minutes (before upgrades/boosts). Default: " + timer.base +
+      (overridden ? " — clear the field to restore it" : "");
   edit.textContent = "✎";
   edit.addEventListener("click", e => {
     e.stopPropagation();
@@ -879,6 +885,10 @@ function beginEdit(timerEl, sec, timer, editBtn) {
   input.min = "0.1";
   input.step = "any";
   input.value = Math.round(cur * 100) / 100;
+  if (!timer.custom) {
+    input.placeholder = Math.round(timer.base * 100) / 100;
+    input.title = "Default: " + timer.base + " min — leave empty to restore the default";
+  }
   input.addEventListener("click", e => e.stopPropagation());
   input.addEventListener("keydown", e => {
     if (e.key === "Enter") commit();
@@ -887,6 +897,14 @@ function beginEdit(timerEl, sec, timer, editBtn) {
   input.addEventListener("blur", commit);
   function commit() {
     const v = parseFloat(input.value);
+    if (input.value.trim() === "" && !timer.custom) {
+      // empty field restores the built-in default
+      delete state.baseOverrides[key];
+      rescaleSection(sec);
+      save();
+      render();
+      return;
+    }
     if (isFinite(v) && v > 0) {
       if (timer.custom) {
         const c = state.custom.find(c => c.id === timer.id);
