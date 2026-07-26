@@ -403,10 +403,12 @@ const CATALOG = [
         title: "Second customer car slot ($650k) — adds a second arrival timer" },
     ],
     timers: [
-      { id: "car", name: "Next client car — slot 1", note: "A new customer car arrives ~48 min after the slot frees up — start this when you deliver one",
+      { id: "car", name: "Client car chance — slot 1", note: "Every 48 min there's a chance a customer car arrives — not guaranteed. No car? Restart this; after two misses use the 10-min guaranteed timer",
         base: 48, mult: {} },
-      { id: "car2", name: "Next client car — slot 2", note: "Car Lift renovation slot — start when you deliver that car",
+      { id: "car2", name: "Client car chance — slot 2", note: "Car Lift renovation slot — same spawn roll as slot 1",
         base: 48, mult: {}, requires: "lift2" },
+      { id: "pity", name: "Guaranteed car (after 2 misses)", note: "If the spawn roll fails twice in a row, a car is guaranteed 10 min later — start this after the second miss",
+        base: 10, mult: {} },
     ],
   },
   {
