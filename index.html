@@ -437,6 +437,46 @@ const CATALOG = [
     ],
   },
   {
+    id: "clubhouse", icon: "🍺", name: "MC Clubhouse",
+    mods: [],
+    timers: [
+      { id: "bar", name: "Bar stock runs dry", note: "A resupply (via Sindy) pays $10k and stocks the bar for 5 in-game days ($5k/day to the safe, cap $100k) — resupply when this ends",
+        base: 240, mult: {} },
+    ],
+  },
+  {
+    id: "arcade", icon: "🕹️", name: "Arcade",
+    mods: [],
+    timers: [
+      { id: "safe", name: "Safe full ($100k)", note: "With all machines installed the arcade earns $5k per 48 min and the safe caps in ~16h — fewer machines fill slower (✎ to adjust)",
+        base: 960, mult: {}, fillLabel: "full" },
+    ],
+  },
+  {
+    id: "fronts", icon: "🧼", name: "Money Fronts",
+    mods: [
+      { id: "cw2", label: "Car Wash laundering done (×2 income)" },
+      { id: "sw2", label: "Smoke on the Water laundering done (×2)" },
+      { id: "hh2", label: "Higgins laundering done (×2)" },
+    ],
+    timers: [
+      { id: "cw", name: "Car Wash safe full ($100k)", note: "$750 per 48 min base, $1,500 after finishing its laundering missions — accrues even offline, collect on login",
+        base: 6400, mult: { cw2: 0.5 }, offline: true, fillLabel: "full" },
+      { id: "sw", name: "Smoke on the Water safe full ($100k)", note: "Same rates as the Car Wash — accrues even offline",
+        base: 6400, mult: { sw2: 0.5 }, offline: true, fillLabel: "full" },
+      { id: "hh", name: "Higgins Helitours safe full ($100k)", note: "Same rates as the Car Wash — accrues even offline",
+        base: 6400, mult: { hh2: 0.5 }, offline: true, fillLabel: "full" },
+    ],
+  },
+  {
+    id: "garment", icon: "🧵", name: "Garment Factory (Darnell Bros)",
+    mods: [],
+    timers: [
+      { id: "safe", name: "Safe full ($100k)", note: "~$2k per 48 min → caps in ~40h — accrues even offline, collect on login",
+        base: 2400, mult: {}, offline: true, fillLabel: "full" },
+    ],
+  },
+  {
     id: "bail", icon: "⛓️", name: "Bail Office",
     mods: [],
     timers: [
