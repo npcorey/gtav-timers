@@ -970,7 +970,18 @@ function beginEdit(timerEl, sec, timer, editBtn) {
   input.value = Math.round(cur * 100) / 100;
   if (!timer.custom) {
     input.placeholder = Math.round(timer.base * 100) / 100;
-    input.title = "Default: " + timer.base + " min — leave empty to restore the default";
+    input.title = "Base minutes, before upgrade/boost checkboxes scale it. Default: " + timer.base + " — leave empty to restore";
+  }
+  // live preview: show what the entered base becomes after active checkboxes
+  const modFactor = effectiveMinutes(sec, timer) / cur;
+  const t = state.timers[timerKey(sec.id, timer.id)];
+  if (!t || t.status === "idle" || t.status === "done") {
+    input.addEventListener("input", () => {
+      const v = parseFloat(input.value);
+      if (isFinite(v) && v > 0) {
+        timerEl.querySelector(".t-clock").textContent = fmt(v * modFactor * 60000);
+      }
+    });
   }
   input.addEventListener("click", e => e.stopPropagation());
   input.addEventListener("keydown", e => {
