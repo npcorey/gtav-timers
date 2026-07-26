@@ -329,9 +329,9 @@ function mcBusiness(id, icon, name, stockBase, equipT, staffT) {
     timers: [
       Object.assign({}, DELIVERY_TIMER),
       { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k) — estimate: ~5 bars per full stock unupgraded, ~2.5 upgraded. Production pauses without supplies; this pauses when stock is full",
-        base: stockBase / 5, mult: { equip: equipT * 2, staff: staffT, mansion: 1/3 }, pausesOnDone: { stock: "no supplies" } },
+        base: stockBase / 5, mult: { equip: equipT * 2, staff: staffT, mansion: 1/3 }, pausesOnDone: { stock: "no supplies" }, bars: "left" },
       { id: "stock", name: "Full stock produced", note: "Empty → full stock — pauses when supplies run out; sell & restart to resume supply use",
-        base: stockBase, mult: { equip: equipT, staff: staffT, mansion: 1/3 }, pausesOnDone: { supplies: "stock full" }, fillLabel: "full" },
+        base: stockBase, mult: { equip: equipT, staff: staffT, mansion: 1/3 }, pausesOnDone: { supplies: "stock full" }, fillLabel: "full", bars: "full" },
     ],
   };
 }
@@ -348,9 +348,9 @@ const CATALOG = [
     timers: [
       Object.assign({}, DELIVERY_TIMER),
       { id: "supplies", name: "Supplies run dry", note: "Resupply when this hits zero — production pauses without supplies; this pauses when stock is full",
-        base: 112.5, mult: { equip: 4/3, mutt: 0.75, mansion: 1/3 }, pausesOnDone: { batch: "no supplies" } },
+        base: 112.5, mult: { equip: 4/3, mutt: 0.75, mansion: 1/3 }, pausesOnDone: { batch: "no supplies" }, bars: "left" },
       { id: "batch", name: "Full batch produced", note: "Empty → full stock ($60k supplies ≈ 1 bar) — pauses when supplies run out; sell & restart to resume supply use",
-        base: 360, mult: { equip: 2/3, mutt: 0.75, mansion: 1/3 }, pausesOnDone: { supplies: "stock full" }, fillLabel: "full" },
+        base: 360, mult: { equip: 2/3, mutt: 0.75, mansion: 1/3 }, pausesOnDone: { supplies: "stock full" }, fillLabel: "full", bars: "full" },
     ],
   },
   {
@@ -363,7 +363,7 @@ const CATALOG = [
     timers: [
       Object.assign({}, DELIVERY_TIMER),
       { id: "supplies", name: "Supplies run dry", note: "Full bar: 1h40m no upgrades → 2h20m with both (upgrades slow depletion AND raise stock value)",
-        base: 100, mult: { equip: 1.2, staff: 7/6, mansion: 1/3 } },
+        base: 100, mult: { equip: 1.2, staff: 7/6, mansion: 1/3 }, bars: "left" },
       { id: "research", name: "Research bar complete", note: "Staff on research only: ~8.5h no upgrades → ~3.5h with both",
         base: 510, mult: { equip: 0.64, staff: 0.64 } },
     ],
@@ -934,6 +934,20 @@ function renderTimer(sec, timer) {
   });
   row.appendChild(edit);
 
+  if (timer.bars) {
+    const barsBtn = document.createElement("button");
+    barsBtn.className = "t-btn";
+    barsBtn.title = timer.bars === "left"
+      ? "Set from the in-game bar: enter how many of the 5 supply segments are LEFT (e.g. 1.5)"
+      : "Set from the in-game bar: enter how many of the 5 stock segments are FILLED (e.g. 3.5)";
+    barsBtn.textContent = "◫";
+    barsBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      beginBarsEdit(el, sec, timer, barsBtn);
+    });
+    row.appendChild(barsBtn);
+  }
+
   const reset = document.createElement("button");
   reset.className = "t-btn";
   reset.title = "Reset";
@@ -1019,6 +1033,60 @@ function beginEdit(timerEl, sec, timer, editBtn) {
   editBtn.replaceWith(input);
   input.focus();
   input.select();
+}
+
+/* One-off remaining-time entry from the in-game 5-segment bar. Does not
+   touch the base duration — the next normal start runs full length. */
+function beginBarsEdit(timerEl, sec, timer, barsBtn) {
+  if (timerEl.querySelector(".t-edit")) return;
+  const key = timerKey(sec.id, timer.id);
+  const durMs = effectiveMinutes(sec, timer) * 60000;
+  const input = document.createElement("input");
+  input.className = "t-edit";
+  input.type = "number";
+  input.min = "0";
+  input.max = "5";
+  input.step = "any";
+  input.placeholder = timer.bars === "left" ? "bars left" : "bars full";
+  input.title = barsBtn.title;
+  const remFor = bars => (timer.bars === "left" ? bars / 5 : (5 - bars) / 5) * durMs;
+  input.addEventListener("click", e => e.stopPropagation());
+  input.addEventListener("input", () => {
+    const v = parseFloat(input.value);
+    if (isFinite(v) && v >= 0 && v <= 5) {
+      timerEl.querySelector(".t-clock").textContent = fmt(remFor(v));
+    }
+  });
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") commit();
+    if (e.key === "Escape") render();
+  });
+  input.addEventListener("blur", commit);
+  function commit() {
+    const v = parseFloat(input.value);
+    if (isFinite(v) && v >= 0 && v <= 5) {
+      const rem = remFor(v);
+      const t = getT(key);
+      t.durationMs = durMs;
+      delete t.autoPaused;
+      delete t.autoPausedBy;
+      delete t.pauseLabel;
+      if (rem <= 0) {
+        t.status = "done";
+        t.endAt = 0;
+        t.remainingMs = 0;
+      } else if (t.status === "paused") {
+        t.remainingMs = rem;
+      } else {
+        t.status = "running";
+        t.endAt = Date.now() + rem;
+      }
+      save();
+    }
+    render();
+  }
+  barsBtn.replaceWith(input);
+  input.focus();
 }
 
 function esc(s) {
