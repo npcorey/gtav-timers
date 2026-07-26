@@ -397,6 +397,19 @@ const CATALOG = [
     ],
   },
   {
+    id: "auto", icon: "🔧", name: "Auto Shop",
+    mods: [
+      { id: "lift2", label: "Car Lift renovation",
+        title: "Second customer car slot ($650k) — adds a second arrival timer" },
+    ],
+    timers: [
+      { id: "car", name: "Next client car — slot 1", note: "A new customer car arrives ~48 min after the slot frees up — start this when you deliver one",
+        base: 48, mult: {} },
+      { id: "car2", name: "Next client car — slot 2", note: "Car Lift renovation slot — start when you deliver that car",
+        base: 48, mult: {}, requires: "lift2" },
+    ],
+  },
+  {
     id: "club", icon: "🪩", name: "Nightclub",
     mods: [
       { id: "equip", label: "Equipment Upgrade ($1.425M)",
