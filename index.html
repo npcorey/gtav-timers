@@ -328,10 +328,10 @@ function mcBusiness(id, icon, name, stockBase, equipT, staffT) {
     ],
     timers: [
       Object.assign({}, DELIVERY_TIMER),
-      { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k) — estimate: ~5 bars per full stock unupgraded, ~2.5 upgraded. Stock timer auto-pauses when this finishes",
-        base: stockBase / 5, mult: { equip: equipT * 2, staff: staffT, mansion: 1/3 } },
-      { id: "stock", name: "Full stock produced", note: "Empty → full stock — pauses when supplies run out",
-        base: stockBase, mult: { equip: equipT, staff: staffT, mansion: 1/3 }, dependsOn: "supplies", fillLabel: "full" },
+      { id: "supplies", name: "Supplies run dry", note: "One full resupply ($75k) — estimate: ~5 bars per full stock unupgraded, ~2.5 upgraded. Production pauses without supplies; this pauses when stock is full",
+        base: stockBase / 5, mult: { equip: equipT * 2, staff: staffT, mansion: 1/3 }, pausesOnDone: { stock: "no supplies" } },
+      { id: "stock", name: "Full stock produced", note: "Empty → full stock — pauses when supplies run out; sell & restart to resume supply use",
+        base: stockBase, mult: { equip: equipT, staff: staffT, mansion: 1/3 }, pausesOnDone: { supplies: "stock full" }, fillLabel: "full" },
     ],
   };
 }
@@ -347,10 +347,10 @@ const CATALOG = [
     ],
     timers: [
       Object.assign({}, DELIVERY_TIMER),
-      { id: "supplies", name: "Supplies run dry", note: "Resupply when this hits zero — the batch timer auto-pauses",
-        base: 112.5, mult: { equip: 4/3, mutt: 0.75, mansion: 1/3 } },
-      { id: "batch", name: "Full batch produced", note: "Empty → full stock ($60k supplies ≈ 1 bar) — pauses when supplies run out",
-        base: 360, mult: { equip: 2/3, mutt: 0.75, mansion: 1/3 }, dependsOn: "supplies", fillLabel: "full" },
+      { id: "supplies", name: "Supplies run dry", note: "Resupply when this hits zero — production pauses without supplies; this pauses when stock is full",
+        base: 112.5, mult: { equip: 4/3, mutt: 0.75, mansion: 1/3 }, pausesOnDone: { batch: "no supplies" } },
+      { id: "batch", name: "Full batch produced", note: "Empty → full stock ($60k supplies ≈ 1 bar) — pauses when supplies run out; sell & restart to resume supply use",
+        base: 360, mult: { equip: 2/3, mutt: 0.75, mansion: 1/3 }, pausesOnDone: { supplies: "stock full" }, fillLabel: "full" },
     ],
   },
   {
@@ -587,14 +587,15 @@ function startTimer(sec, timer) {
   t.status = "running";
   t.durationMs = durMs;
   t.endAt = Date.now() + durMs;
-  // restarting a supplies timer means we resupplied — production can resume
+  // restarting this timer clears its block (resupplied / stock sold) —
+  // resume any sibling it had auto-paused
   for (const s of sec.timers) {
-    if (s.dependsOn !== timer.id) continue;
     const t2 = state.timers[timerKey(sec.id, s.id)];
-    if (t2 && t2.status === "paused" && t2.autoPaused) {
+    if (t2 && t2.status === "paused" && t2.autoPausedBy === timer.id) {
       t2.endAt = Date.now() + t2.remainingMs;
       t2.status = "running";
-      t2.autoPaused = false;
+      delete t2.autoPausedBy;
+      delete t2.pauseLabel;
     }
   }
   save();
@@ -612,7 +613,9 @@ function toggleTimer(sec, timer) {
   } else if (t.status === "paused") {
     t.endAt = Date.now() + t.remainingMs;
     t.status = "running";
-    t.autoPaused = false;
+    delete t.autoPaused;
+    delete t.autoPausedBy;
+    delete t.pauseLabel;
     save();
   }
   render();
@@ -688,14 +691,14 @@ function tick() {
           t.status = "done";
           changed = true;
           notifyDone(sec.name + " — " + timer.name);
-          // no supplies left → production in this section halts
-          for (const s of sec.timers) {
-            if (s.dependsOn !== timer.id) continue;
-            const t2 = state.timers[timerKey(sec.id, s.id)];
+          // this timer finishing halts linked ones (no supplies / stock full)
+          for (const targetId in (timer.pausesOnDone || {})) {
+            const t2 = state.timers[timerKey(sec.id, targetId)];
             if (t2 && t2.status === "running") {
               t2.remainingMs = Math.max(0, t2.endAt - Date.now());
               t2.status = "paused";
-              t2.autoPaused = true;
+              t2.autoPausedBy = timer.id;
+              t2.pauseLabel = timer.pausesOnDone[targetId];
             }
           }
         } else if (soonest === null || rem < soonest) {
@@ -903,7 +906,7 @@ function renderTimer(sec, timer) {
   const status = document.createElement("div");
   status.className = "t-status";
   status.textContent =
-    t.status === "paused" && t.autoPaused ? "no supplies" :
+    t.status === "paused" && (t.pauseLabel || t.autoPaused) ? (t.pauseLabel || "no supplies") :
     t.status === "done" ? "ready!" :
     timer.fillLabel && (t.status === "running" || t.status === "paused")
       ? Math.round(fillPct) + "% " + timer.fillLabel :
