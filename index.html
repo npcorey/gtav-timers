@@ -448,11 +448,13 @@ const CATALOG = [
     ],
   },
   {
-    id: "cayo", icon: "🏝️", name: "Cayo Perico Heist",
+    id: "cayo", icon: "🏝️", name: "Heist Cooldowns",
     mods: [],
     timers: [
-      { id: "cooldown", name: "Cooldown (solo)", note: "2h24m before Pavel offers the next run — real time, ticks while offline",
+      { id: "cooldown", name: "Cayo Perico (solo)", note: "2h24m before Pavel offers the next run — real time, ticks while offline",
         base: 144, mult: {}, offline: true },
+      { id: "guzman", name: "Oscar Guzman Flies Again", note: "1h after finishing The Titan Job before the chain can be replayed — real time, ticks while offline",
+        base: 60, mult: {}, offline: true },
     ],
   },
 ];
