@@ -1151,12 +1151,44 @@ load();
 const awayGap = state.lastSeen ? Math.max(0, Date.now() - state.lastSeen) : 0;
 for (const key in state.timers) {
   const t = state.timers[key];
+  // migrate pre-two-way-dependency auto-pause flag so resupply resumes it again
+  if (t.status === "paused" && t.autoPaused && !t.autoPausedBy) {
+    t.autoPausedBy = "supplies";
+    t.pauseLabel = "no supplies";
+    delete t.autoPaused;
+  }
   if (t.status !== "running") continue;
   const def = findTimerDef(key);
   if (awayGap > 5000 && def && !def.offline) t.endAt += awayGap;
-  if (t.endAt <= Date.now()) t.status = "done";
+  if (t.endAt <= Date.now()) {
+    t.status = "done";
+    // run the same pause cascade tick() would have applied (no supplies / stock full)
+    if (def && def.pausesOnDone) {
+      const secId = key.slice(0, key.indexOf("."));
+      for (const targetId in def.pausesOnDone) {
+        const t2 = state.timers[secId + "." + targetId];
+        if (t2 && t2.status === "running") {
+          t2.remainingMs = Math.max(0, t2.endAt - Date.now());
+          t2.status = "paused";
+          t2.autoPausedBy = def.id;
+          t2.pauseLabel = def.pausesOnDone[targetId];
+        }
+      }
+    }
+  }
 }
 save();
+
+/* Keep multiple open tabs in sync: when another tab saves, adopt its state
+   instead of clobbering it with our stale copy on the next heartbeat. */
+window.addEventListener("storage", e => {
+  if (e.key === LS_KEY && e.newValue) {
+    try {
+      state = JSON.parse(e.newValue);
+      render();
+    } catch (err) { /* ignore malformed writes */ }
+  }
+});
 paintNotifyBtn();
 render();
 setInterval(tick, 250);
