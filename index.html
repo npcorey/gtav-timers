@@ -503,10 +503,19 @@ const CATALOG = [
   },
   {
     id: "cayo", icon: "🏝️", name: "Heist Cooldowns",
-    mods: [],
+    mods: [
+      { id: "group", label: "Cayo: group run (48 min cooldown)",
+        title: "Finishing Cayo Perico with 2+ players cuts the cooldown from 2h24m to 48 min" },
+    ],
     timers: [
-      { id: "cooldown", name: "Cayo Perico (solo)", note: "2h24m before Pavel offers the next run — real time, ticks while offline",
-        base: 144, mult: {}, offline: true },
+      { id: "cooldown", name: "Cayo Perico", note: "2h24m solo (48 min in a group) before Pavel offers the next run — real time, ticks while offline",
+        base: 144, mult: { group: 1/3 }, offline: true },
+      { id: "casino", name: "Diamond Casino Heist", note: "48 min after the finale before you can start it again — real time",
+        base: 48, mult: {}, offline: true },
+      { id: "dre", name: "Dr. Dre VIP Contract", note: "48 min before the Agency offers the replay — real time",
+        base: 48, mult: {}, offline: true },
+      { id: "tuners", name: "Auto Shop contract (same one)", note: "~1h before a completed Tuners contract reappears — rotate contracts to keep grinding. Real time",
+        base: 60, mult: {}, offline: true },
       { id: "guzman", name: "Oscar Guzman Flies Again", note: "1h after finishing The Titan Job before the chain can be replayed — real time, ticks while offline",
         base: 60, mult: {}, offline: true },
     ],
