@@ -58,6 +58,15 @@
   .hbtn:hover { border-color: var(--accent-dim); }
   .hbtn.on { border-color: var(--accent); color: var(--accent); }
 
+  #nudge {
+    background: #33270f;
+    color: var(--done);
+    padding: 8px 18px;
+    font-size: 0.8rem;
+    border-bottom: 1px solid var(--border);
+    line-height: 1.5;
+  }
+
   .layout { display: flex; flex: 1; min-height: 0; }
 
   /* ---------- Sidebar ---------- */
@@ -271,6 +280,11 @@
   <button class="hbtn" id="resetAllBtn" title="Reset every timer">Reset All</button>
 </header>
 
+<div id="nudge" hidden>
+  ⏸ This tab has been open a while — in-game timers only advance while you're actually playing.
+  Not in a session? Hit <b>“Not playing”</b> up top, or resync a timer from its in-game bar with <b>◫</b>. (Click anywhere to dismiss.)
+</div>
+
 <div class="layout">
   <aside id="sidebar">
     <h2>Your Businesses</h2>
@@ -313,7 +327,7 @@ const DELIVERY_TIMER = {
 };
 
 const MANSION_MOD = { id: "mansion", label: "Mansion boost (×3 speed)",
-  title: "AI Concierge production boost — free, one business per real day, 24h cooldown" };
+  title: "AI Concierge production boost — one business per real day. Auto-unticks 24h after you tick it, matching the in-game expiry", expireMin: 1440 };
 
 /* stockBase = empty→full minutes with no upgrades. equipT/staffT = per-unit
    production-time multipliers. Supplies: ~5 bars fill max stock unupgraded,
@@ -343,7 +357,7 @@ const CATALOG = [
     mods: [
       { id: "equip", label: "Equipment Upgrade ($250k)" },
       { id: "mutt",  label: "Mutt daily boost",
-        title: "Check In with Mutt once per real day — quitting the game resets the effect" },
+        title: "Check In with Mutt once per real day — the boost ends when you quit the game (untick then!) and at most 24h later, when this auto-unticks", expireMin: 1440 },
       MANSION_MOD,
     ],
     timers: [
@@ -564,12 +578,21 @@ function findTimerDef(key) {
   return sec ? sec.timers.find(t => t.id === tId) : null;
 }
 
+/* Is a section checkbox effectively on? Timed boosts (expireMin) turn
+   themselves off once their real-world duration has passed. */
+function modActive(secId, modDef) {
+  const v = state.mods[secId] && state.mods[secId][modDef.id];
+  if (!v) return false;
+  if (modDef.expireMin && typeof v === "number" && Date.now() - v > modDef.expireMin * 60000) return false;
+  return true;
+}
+
 function effectiveMinutes(sec, timer) {
   const key = timerKey(sec.id, timer.id);
   let mins = state.baseOverrides[key] != null ? state.baseOverrides[key] : timer.base;
-  const secMods = state.mods[sec.id] || {};
   for (const modId in timer.mult) {
-    if (secMods[modId]) mins *= timer.mult[modId];
+    const def = sec.mods.find(m => m.id === modId);
+    if (def && modActive(sec.id, def)) mins *= timer.mult[modId];
   }
   return mins;
 }
@@ -686,9 +709,20 @@ function notifyDone(label) {
 function tick() {
   let changed = false;
   let soonest = null;
+  let anyInGame = false;
   for (const secId of allActiveSections()) {
     const sec = getSection(secId);
     if (!sec) continue;
+    // timed boosts (Mutt, mansion) expire on their own — untick and rescale
+    for (const mod of sec.mods) {
+      if (!mod.expireMin) continue;
+      const v = state.mods[sec.id] && state.mods[sec.id][mod.id];
+      if (typeof v === "number" && Date.now() - v > mod.expireMin * 60000) {
+        state.mods[sec.id][mod.id] = false;
+        rescaleSection(sec);
+        changed = true;
+      }
+    }
     for (const timer of sec.timers) {
       const key = timerKey(sec.id, timer.id);
       const t = state.timers[key];
@@ -709,8 +743,9 @@ function tick() {
               t2.pauseLabel = timer.pausesOnDone[targetId];
             }
           }
-        } else if (soonest === null || rem < soonest) {
-          soonest = rem;
+        } else {
+          if (soonest === null || rem < soonest) soonest = rem;
+          if (!timer.offline) anyInGame = true;
         }
       }
     }
@@ -722,6 +757,9 @@ function tick() {
     if (Date.now() - (state.lastSeen || 0) > 5000) save();
   }
   document.title = soonest !== null ? fmt(soonest) + " · GTAV Timers" : "GTAV Online Business Timers";
+
+  // nudge: hours of in-game countdown with zero interaction usually means AFK
+  nudgeEl.hidden = !(anyInGame && !state.globalPause && Date.now() - lastInteract > NUDGE_AFTER_MS);
 }
 
 function updateClocks() {
@@ -826,10 +864,10 @@ function renderSection(sec) {
       label.className = "mod";
       const cb = document.createElement("input");
       cb.type = "checkbox";
-      cb.checked = !!(state.mods[sec.id] && state.mods[sec.id][mod.id]);
+      cb.checked = modActive(sec.id, mod);
       cb.addEventListener("change", () => {
         if (!state.mods[sec.id]) state.mods[sec.id] = {};
-        state.mods[sec.id][mod.id] = cb.checked;
+        state.mods[sec.id][mod.id] = cb.checked ? (mod.expireMin ? Date.now() : true) : false;
         if (!cb.checked) {
           // stop timers this checkbox reveals so they can't finish invisibly
           for (const t of sec.timers) {
@@ -855,9 +893,11 @@ function renderSection(sec) {
 
   const wrap = document.createElement("div");
   wrap.className = "timers";
-  const secMods = state.mods[sec.id] || {};
   for (const timer of sec.timers) {
-    if (timer.requires && !secMods[timer.requires]) continue;
+    if (timer.requires) {
+      const reqDef = sec.mods.find(m => m.id === timer.requires);
+      if (!reqDef || !modActive(sec.id, reqDef)) continue;
+    }
     wrap.appendChild(renderTimer(sec, timer));
   }
   box.appendChild(wrap);
@@ -1106,6 +1146,14 @@ function esc(s) {
 }
 
 /* ============================== Header controls ============================== */
+const nudgeEl = document.getElementById("nudge");
+const NUDGE_AFTER_MS = 3 * 3600000; // 3h without touching the page
+let lastInteract = Date.now();
+document.addEventListener("click", () => {
+  lastInteract = Date.now();
+  nudgeEl.hidden = true;
+}, true);
+
 const pauseBtn = document.getElementById("pauseBtn");
 function paintPauseBtn() {
   pauseBtn.textContent = state.globalPause ? "▶ Back in game" : "⏸ Not playing";
@@ -1195,6 +1243,16 @@ load();
    playing, so they pause for the time this page was closed: shift their end
    time forward by the away-gap. Real-time timers (offline: true — salvage
    yard, Cayo cooldown) keep counting through wall-clock time. */
+/* Timed boosts ticked before auto-expiry existed are stale by definition —
+   untick them so timers stop running boosted forever. */
+for (const sec of CATALOG) {
+  for (const mod of sec.mods) {
+    if (mod.expireMin && state.mods[sec.id] && state.mods[sec.id][mod.id] === true) {
+      state.mods[sec.id][mod.id] = false;
+    }
+  }
+}
+
 const awayGap = state.lastSeen ? Math.max(0, Date.now() - state.lastSeen) : 0;
 for (const key in state.timers) {
   const t = state.timers[key];
