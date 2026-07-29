@@ -266,6 +266,7 @@
   <button class="hbtn" id="sidebarToggle">☰ Businesses</button>
   <h1>GTAV Online <span>Business Timers</span></h1>
   <div class="spacer"></div>
+  <button class="hbtn" id="pauseBtn" title="Pause every in-game timer while you're not playing GTA (with this tab still open). 🌙 real-time timers keep running.">⏸ Not playing</button>
   <button class="hbtn" id="notifyBtn" title="Get a browser notification when a timer finishes">🔔 Notifications: Off</button>
   <button class="hbtn" id="resetAllBtn" title="Reset every timer">Reset All</button>
 </header>
@@ -422,8 +423,8 @@ const CATALOG = [
         base: 240, mult: {}, fillLabel: "full" },
       { id: "dj", name: "Popularity top-up", note: "Popularity falls ~5% per 48 min; $10k promo ≈ +10% — top up before this runs out to stay at 100%. If your club decays slower (e.g. staff upgrade), ✎ the base to what you observe",
         base: 96, mult: {} },
-      { id: "coke", name: "South American Imports full (cocaine)", note: "First goods type to hit max (10 crates) — needs a technician assigned",
-        base: 2400, mult: { equip: 0.5 }, fillLabel: "full" },
+      { id: "coke", name: "South American Imports full (cocaine)", note: "First goods type to hit max (10 crates) — needs a technician assigned. Use ◫ to sync from the crate count",
+        base: 2400, mult: { equip: 0.5 }, fillLabel: "full", bars: "full", barsMax: 10, barsUnit: "crates" },
     ],
   },
   {
@@ -904,6 +905,7 @@ function renderTimer(sec, timer) {
   const status = document.createElement("div");
   status.className = "t-status";
   status.textContent =
+    t.status === "paused" && t.globalPaused ? "not playing" :
     t.status === "paused" && (t.pauseLabel || t.autoPaused) ? (t.pauseLabel || "no supplies") :
     t.status === "done" ? "ready!" :
     timer.fillLabel && (t.status === "running" || t.status === "paused")
@@ -935,9 +937,10 @@ function renderTimer(sec, timer) {
   if (timer.bars) {
     const barsBtn = document.createElement("button");
     barsBtn.className = "t-btn";
+    const bMax = timer.barsMax || 5, bUnit = timer.barsUnit || "segments";
     barsBtn.title = timer.bars === "left"
-      ? "Set from the in-game bar: enter how many of the 5 supply segments are LEFT (e.g. 1.5)"
-      : "Set from the in-game bar: enter how many of the 5 stock segments are FILLED (e.g. 3.5)";
+      ? "Set from the in-game bar: enter how many of the " + bMax + " " + bUnit + " are LEFT (e.g. 1.5)"
+      : "Set from the in-game bar: enter how many of the " + bMax + " " + bUnit + " are FILLED (e.g. 3.5)";
     barsBtn.textContent = "◫";
     barsBtn.addEventListener("click", e => {
       e.stopPropagation();
@@ -1039,19 +1042,21 @@ function beginBarsEdit(timerEl, sec, timer, barsBtn) {
   if (timerEl.querySelector(".t-edit")) return;
   const key = timerKey(sec.id, timer.id);
   const durMs = effectiveMinutes(sec, timer) * 60000;
+  const bMax = timer.barsMax || 5;
+  const bUnit = timer.barsUnit || "bars";
   const input = document.createElement("input");
   input.className = "t-edit";
   input.type = "number";
   input.min = "0";
-  input.max = "5";
+  input.max = String(bMax);
   input.step = "any";
-  input.placeholder = timer.bars === "left" ? "bars left" : "bars full";
+  input.placeholder = bUnit + (timer.bars === "left" ? " left" : " full");
   input.title = barsBtn.title;
-  const remFor = bars => (timer.bars === "left" ? bars / 5 : (5 - bars) / 5) * durMs;
+  const remFor = bars => (timer.bars === "left" ? bars / bMax : (bMax - bars) / bMax) * durMs;
   input.addEventListener("click", e => e.stopPropagation());
   input.addEventListener("input", () => {
     const v = parseFloat(input.value);
-    if (isFinite(v) && v >= 0 && v <= 5) {
+    if (isFinite(v) && v >= 0 && v <= bMax) {
       timerEl.querySelector(".t-clock").textContent = fmt(remFor(v));
     }
   });
@@ -1062,7 +1067,7 @@ function beginBarsEdit(timerEl, sec, timer, barsBtn) {
   input.addEventListener("blur", commit);
   function commit() {
     const v = parseFloat(input.value);
-    if (isFinite(v) && v >= 0 && v <= 5) {
+    if (isFinite(v) && v >= 0 && v <= bMax) {
       const rem = remFor(v);
       const t = getT(key);
       t.durationMs = durMs;
@@ -1092,6 +1097,39 @@ function esc(s) {
 }
 
 /* ============================== Header controls ============================== */
+const pauseBtn = document.getElementById("pauseBtn");
+function paintPauseBtn() {
+  pauseBtn.textContent = state.globalPause ? "▶ Back in game" : "⏸ Not playing";
+  pauseBtn.classList.toggle("on", !!state.globalPause);
+}
+pauseBtn.addEventListener("click", () => {
+  state.globalPause = !state.globalPause;
+  if (state.globalPause) {
+    // freeze every running in-game timer; 🌙 real-time ones keep going
+    for (const key in state.timers) {
+      const t = state.timers[key];
+      const def = findTimerDef(key);
+      if (t.status === "running" && def && !def.offline) {
+        t.remainingMs = Math.max(0, t.endAt - Date.now());
+        t.status = "paused";
+        t.globalPaused = true;
+      }
+    }
+  } else {
+    for (const key in state.timers) {
+      const t = state.timers[key];
+      if (t.status === "paused" && t.globalPaused) {
+        t.endAt = Date.now() + t.remainingMs;
+        t.status = "running";
+      }
+      delete t.globalPaused;
+    }
+  }
+  save();
+  paintPauseBtn();
+  render();
+});
+
 const notifyBtn = document.getElementById("notifyBtn");
 function paintNotifyBtn() {
   const on = state.notify && "Notification" in window && Notification.permission === "granted";
@@ -1185,11 +1223,14 @@ window.addEventListener("storage", e => {
   if (e.key === LS_KEY && e.newValue) {
     try {
       state = JSON.parse(e.newValue);
+      paintPauseBtn();
+      paintNotifyBtn();
       render();
     } catch (err) { /* ignore malformed writes */ }
   }
 });
 paintNotifyBtn();
+paintPauseBtn();
 render();
 setInterval(tick, 250);
 </script>
