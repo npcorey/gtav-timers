@@ -57,6 +57,7 @@
   }
   .hbtn:hover { border-color: var(--accent-dim); }
   .hbtn.on { border-color: var(--accent); color: var(--accent); }
+  #mansionChip { border-color: var(--accent-dim); color: var(--accent); cursor: default; font-variant-numeric: tabular-nums; }
 
   #nudge {
     background: #33270f;
@@ -275,6 +276,7 @@
   <button class="hbtn" id="sidebarToggle">☰ Businesses</button>
   <h1>GTAV Online <span>Business Timers</span></h1>
   <div class="spacer"></div>
+  <span class="hbtn" id="mansionChip" hidden title="AI Concierge production boost — real-life 24h from when you ticked it; the checkbox unticks itself when it expires"></span>
   <button class="hbtn" id="pauseBtn" title="Pause every in-game timer while you're not playing GTA (with this tab still open). 🌙 real-time timers keep running.">⏸ Not playing</button>
   <button class="hbtn" id="notifyBtn" title="Get a browser notification when a timer finishes">🔔 Notifications: Off</button>
   <button class="hbtn" id="resetAllBtn" title="Reset every timer">Reset All</button>
@@ -760,6 +762,19 @@ function tick() {
 
   // nudge: hours of in-game countdown with zero interaction usually means AFK
   nudgeEl.hidden = !(anyInGame && !state.globalPause && Date.now() - lastInteract > NUDGE_AFTER_MS);
+
+  // header chip: live countdown of the 24h mansion boost (soonest expiry wins)
+  let boostRem = null, boostSec = "";
+  for (const sec of CATALOG) {
+    const mod = sec.mods.find(m => m.id === "mansion" && m.expireMin);
+    if (!mod) continue;
+    const v = state.mods[sec.id] && state.mods[sec.id].mansion;
+    if (typeof v !== "number") continue;
+    const rem = v + mod.expireMin * 60000 - Date.now();
+    if (rem > 0 && (boostRem === null || rem < boostRem)) { boostRem = rem; boostSec = sec.name; }
+  }
+  mansionChip.hidden = boostRem === null;
+  if (boostRem !== null) mansionChip.textContent = "🏰 Boost " + fmt(boostRem) + " · " + boostSec;
 }
 
 function updateClocks() {
@@ -1146,6 +1161,7 @@ function esc(s) {
 }
 
 /* ============================== Header controls ============================== */
+const mansionChip = document.getElementById("mansionChip");
 const nudgeEl = document.getElementById("nudge");
 const NUDGE_AFTER_MS = 3 * 3600000; // 3h without touching the page
 let lastInteract = Date.now();
